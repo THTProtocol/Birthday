@@ -190,7 +190,7 @@
 <div id="step-name" class="glass-card">
   <div class="step-emoji">&#x1F382;</div>
   <div class="step-title">Klaudusia's Birthday Hunt</div>
-  <div class="step-sub">Two teams. Ten trials. One winner.<br>Photo proof required. Speed = bonus points.</div>
+  <div class="step-sub">Choose your team and start the hunt.</div>
   <label class="field-label">What's your name?</label>
   <input type="text" class="input-field" id="player-name-input" placeholder="Your name" maxlength="24" autocomplete="off">
   <div id="name-error" class="error-msg"></div>
@@ -408,6 +408,7 @@ function pickTeam(color) {
     wrap.style.display = isTaken ? 'none' : 'block';
     btn.className = 'btn btn-' + color;
     btn.textContent = isTaken ? 'Join ' + (color==='pink'?'Team Pink':'Team Blue') : 'Create Team & Start Hunting';
+    btn.disabled = false;
     if (!isTaken) { $('create-team-name').focus(); }
   } else {
     wrap.style.display = 'none';
