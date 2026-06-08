@@ -1,5 +1,5 @@
 ======================================================================
- RINGPARKEN HUNT — DEPLOYMENT & RUN GUIDE
+ RINGPARKEN HUNT  -  DEPLOYMENT & RUN GUIDE
 ======================================================================
 
 YOU HAVE TWO OPTIONS TO RUN THIS:

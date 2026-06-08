@@ -1,5 +1,5 @@
 
-"""Klaudusia's Birthday Scavenger Hunt — Urban Hunters Edition
+"""Klaudusia's Birthday Scavenger Hunt  -  Urban Hunters Edition
 QR-to-task image flow with bonus cards, timing, and competitive mechanics."""
 
 import os, json, uuid, time, re, random
@@ -36,7 +36,7 @@ BONUS_CARDS = {
     "fast_track": {
         "id": "fast_track",
         "name": "FAST TRACK",
-        "description": "Skip the next task completely — no penalty.",
+        "description": "Skip the next task completely  -  no penalty.",
         "type": "skip_free",  # applied on next /api/skip
     },
     "time_break": {
@@ -388,7 +388,7 @@ def skip():
     # ── Active bonus check ────────────────────────────────────
     active = ts.get('active_bonus')
     if active and active.get('type') == 'skip_free':
-        # FAST TRACK — free skip
+        # FAST TRACK  -  free skip
         penalty = 0
         free_skip = True
         ts['bonus_history'].append({
@@ -565,7 +565,7 @@ def bonus_respond():
 
         card_type = card_def.get('type', '')
         if card_type == 'steal':
-            # STEAL POINTS — immediate, steal from opponent
+            # STEAL POINTS  -  immediate, steal from opponent
             opponent = None
             opponent_color = get_opponent_color(ts.get('color', 'red'))
             opp_amount = int(request.form.get('steal_amount', card_def.get('steal_amount', 10)))
@@ -587,7 +587,7 @@ def bonus_respond():
             else:
                 msg = 'No opponent to steal from.'
         elif card_type == 'block':
-            # TIME BREAK — set pushup requirement
+            # TIME BREAK  -  set pushup requirement
             ts['active_bonus'] = card_def
             ts['blocked_until'] = None
             ts['active_cooldown'] = f'TIME BREAK: {card_def["pushups_required"]} pushups'
@@ -597,13 +597,13 @@ def bonus_respond():
             })
             msg = 'TIME BREAK active! Complete pushups to unlock.'
         elif card_type == 'cooldown':
-            # TIME TAX — 5-minute block
+            # TIME TAX  -  5-minute block
             cooldown_end = datetime.now(timezone.utc)
             cooldown_sec = card_def.get('cooldown_seconds', 300)
             from datetime import timedelta
             cooldown_end = cooldown_end + timedelta(seconds=cooldown_sec)
             ts['blocked_until'] = cooldown_end.isoformat()
-            ts['active_cooldown'] = 'TIME TAX — 5 min wait'
+            ts['active_cooldown'] = 'TIME TAX  -  5 min wait'
             ts['active_bonus'] = card_def
             ts['bonus_history'].append({
                 'card': card_id,

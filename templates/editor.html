@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mission Editor — Klaudusia's Birthday Hunt</title>
+<title>Mission Editor  -  Klaudusia's Birthday Hunt</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
@@ -610,7 +610,7 @@ function render() {
             '<div class="char-count"><span id="loc-count-' + m.id + '">0</span> chars</div>' +
           '</div>' +
           '<div class="field full">' +
-            '<label>Task <span class="hint">(what players must do — describe the challenge)</span></label>' +
+            '<label>Task <span class="hint">(what players must do  -  describe the challenge)</span></label>' +
             '<textarea class="large" id="task-' + m.id + '" placeholder="Describe the challenge. Be specific: pose, photo requirements, props..." oninput="onFieldChange(' + m.id + ', this, \'task\'); dirty()">' + escapeHtml(m.task||'') + '</textarea>' +
             '<div class="char-count"><span id="task-count-' + m.id + '">0</span> chars</div>' +
           '</div>' +
@@ -710,7 +710,7 @@ function switchTeam(color) {
       if (d.missions) {
         missions = d.missions;
         missionRecords = d.missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
-        $('editor-subtitle').textContent = 'Editing ' + (d.title || '') + ' — ' + missions.length + ' missions';
+        $('editor-subtitle').textContent = 'Editing ' + (d.title || '') + '  -  ' + missions.length + ' missions';
         markSaved('Loaded'); dirtyFlag = false;
         render();
       } else { showToast(d.error || 'Failed to load', 'error'); }

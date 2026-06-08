@@ -186,69 +186,41 @@
   <span class="score-pill" id="score-display">0 pts</span>
 </div>
 
-<!-- === STEP 0: NAME === -->
+<!-- === STEP 1: NAME === -->
 <div id="step-name" class="glass-card">
   <div class="step-emoji">&#x1F382;</div>
   <div class="step-title">Klaudusia's Birthday Hunt</div>
+  <div class="step-sub">Two teams. Ten trials. One winner.<br>Photo proof required. Speed = bonus points.</div>
   <label class="field-label">What's your name?</label>
   <input type="text" class="input-field" id="player-name-input" placeholder="Your name" maxlength="24" autocomplete="off">
   <div id="name-error" class="error-msg"></div>
-  <button class="btn btn-primary" id="btn-next-name" onclick="goToChoose()">Continue</button>
-  <div class="rules-mini">
-    <span>&#x1F4F8; Photo proof required</span> &middot; <span>&#x23F0; Speed = bonus pts</span> &middot; <span>&#x1F0CF; Bonus cards</span><br>
-    Skip = 0 pts
-  </div>
+  <button class="btn btn-primary" id="btn-next-name" onclick="goToTeamPick()">Continue</button>
 </div>
 
-<!-- === STEP 1: CHOOSE CREATE OR JOIN === -->
-<div id="step-choose" class="glass-card hidden">
+<!-- === STEP 2: PICK TEAM === -->
+<div id="step-pick" class="glass-card hidden">
   <div class="step-emoji">&#x1F3C3;</div>
   <div class="step-title">Hey there, <span id="greeting-name"></span>!</div>
-  <div class="choice-grid">
-    <button class="choice-btn" onclick="goToCreate()">
-      <span class="icon">&#x2696;</span>
-      <span class="label">Create a Team</span>
-      <span class="hint">Pick Pink or Blue<br>You become Captain</span>
-    </button>
-    <button class="choice-btn" onclick="goToJoin()">
-      <span class="icon">&#x1F91D;</span>
-      <span class="label">Join a Team</span>
-      <span class="hint">Pink or Blue already exists<br>Hop right in</span>
-    </button>
-  </div>
-  <button class="btn btn-ghost btn-back" onclick="goToName()">&larr; Back</button>
-</div>
-
-<!-- === STEP 2a: CREATE TEAM === -->
-<div id="step-create" class="glass-card hidden">
-  <div class="step-emoji">&#x2696;</div>
-  <div class="step-title">Create Your Team</div>
-  <div class="color-grid">
-    <div class="color-card pink" id="card-pink" onclick="pickColor('pink')">
-      <span class="dot">&#x1F49D;</span>Team Pink
+  <div class="step-sub">Pick your team. First to join becomes Captain.</div>
+  <div class="color-grid" id="color-grid">
+    <div class="color-card pink" id="card-pink" onclick="pickTeam('pink')">
+      <span class="dot">&#x1F49D;</span>
+      <div>Team Pink</div>
+      <div class="hint" id="pink-status">Available - You will be Captain</div>
     </div>
-    <div class="color-card blue" id="card-blue" onclick="pickColor('blue')">
-      <span class="dot">&#x1F535;</span>Team Blue
+    <div class="color-card blue" id="card-blue" onclick="pickTeam('blue')">
+      <span class="dot">&#x1F535;</span>
+      <div>Team Blue</div>
+      <div class="hint" id="blue-status">Available - You will be Captain</div>
     </div>
   </div>
-  <div style="margin-top:18px;">
-    <label class="field-label">Team Name</label>
+  <div id="team-name-wrap" style="display:none;margin-top:16px;">
+    <label class="field-label">Name Your Team</label>
     <input type="text" class="input-field" id="create-team-name" placeholder="Team name" maxlength="24" autocomplete="off">
   </div>
-  <div id="create-error" class="error-msg"></div>
-  <button class="btn btn-pink" id="btn-create" onclick="createTeam()">Create Team &amp; Start Hunting</button>
-  <button class="btn btn-ghost btn-back" onclick="goToChoose()">&larr; Back</button>
-</div>
-
-<!-- === STEP 2b: JOIN TEAM === -->
-<div id="step-join" class="glass-card hidden">
-  <div class="step-emoji">&#x1F91D;</div>
-  <div class="step-title">Join a Team</div>
-  <div class="team-list" id="team-list">
-    <div class="step-sub" style="color:var(--text-faint)">Loading teams...</div>
-  </div>
-  <div id="join-error" class="error-msg"></div>
-  <button class="btn btn-ghost btn-back" onclick="goToChoose()">&larr; Back</button>
+  <div id="pick-error" class="error-msg"></div>
+  <button class="btn btn-pink" id="btn-join" onclick="doJoin()">Join Team</button>
+  <button class="btn btn-ghost btn-back" onclick="goToName()">&larr; Back</button>
 </div>
 
 <!-- === HUNT AREA === -->
@@ -294,6 +266,15 @@
     <span class="mission-loc" id="cur-location"></span>
     <div class="task-box" id="cur-task"></div>
 
+    <!-- Photo Upload on Dashboard -->
+    <div class="photo-upload-box" id="dash-photo-box" onclick="document.getElementById('dash-photo-input').click()">
+      <input type="file" id="dash-photo-input" accept="image/*" capture="environment" onchange="previewDashPhoto(this)">
+      <span class="photo-label">&#x1F4F8; Attach Photo Proof</span>
+      <span class="photo-sub">Any teammate can upload. Required to complete.</span>
+      <img class="photo-preview" id="dash-photo-preview" src="" alt="">
+    </div>
+    <button class="btn btn-primary" id="btn-submit-proof" onclick="submitProof()" style="display:none;">Submit Proof &amp; Complete Mission</button>
+
     <div class="timer-bar" id="timer-bar">
       <div class="timer-label">Mission Timer</div>
       <div class="elapsed" id="timer-display">00:00</div>
@@ -332,6 +313,17 @@
 <a class="admin-link" href="/admin">Admin</a>
 <div id="toast" class="toast"></div>
 
+<style>
+/* Photo upload on dashboard */
+.photo-upload-box { margin:14px 0; padding:18px; border:1.5px dashed var(--border-standard); border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:all .2s; background:var(--bg-deep); }
+.photo-upload-box:hover { border-color:var(--gold); background:rgba(255,209,102,0.03); }
+.photo-upload-box.has-photo { border-style:solid; border-color:var(--green); background:var(--green-bg); }
+.photo-upload-box input { display:none; }
+.photo-upload-box .photo-label { font-size:14px; font-weight:600; color:var(--text-secondary); display:block; }
+.photo-upload-box .photo-sub { font-size:12px; color:var(--text-faint); margin-top:4px; display:block; }
+.photo-upload-box .photo-preview { max-width:100%; border-radius:var(--radius-md); margin-top:10px; display:none; }
+.photo-upload-box.has-photo .photo-preview { display:block; }
+</style>
 
 <script>
 // ================== CONFIG ==================
@@ -373,105 +365,135 @@ function applyTeamColor(color) {
 }
 
 // ================== NAVIGATION ==================
-function show(elId) { ['step-name','step-choose','step-create','step-join','hunt-area'].forEach(function(id){$(id).classList.add('hidden');}); if (elId) $(elId).classList.remove('hidden'); }
+function show(elId) { ['step-name','step-pick','hunt-area'].forEach(function(id){$(id).classList.add('hidden');}); if (elId) $(elId).classList.remove('hidden'); }
 
 function goToName() { show('step-name'); $('player-name-input').focus(); }
 
-function goToChoose() {
+function goToTeamPick() {
   var name = $('player-name-input').value.trim();
   if (!name) { setError('name-error', 'Please enter your name.'); return; }
   if (name.length > 24) { setError('name-error', 'Name too long (24 max).'); return; }
   setError('name-error', '');
   myMember = name;
   $('greeting-name').textContent = name;
-  show('step-choose');
+  show('step-pick');
+  loadTeamStatuses();
 }
 
-function goToCreate() { show('step-create'); $('create-team-name').focus(); loadTeamColors(); }
-function goToJoin() { show('step-join'); loadTeamList(); }
-
-// Fetch existing teams to disable unavailable colors
-function loadTeamColors() {
+function loadTeamStatuses() {
   fetch('/api/team/list').then(function(r){return r.json();}).then(function(list){
-    var pinkTaken = false, blueTaken = false;
-    for (var t in list) { if(list[t].color==='red') pinkTaken=true; if(list[t].color==='blue') blueTaken=true; }
+    var pinkTaken = false, blueTaken = false, pinkName = '', blueName = '';
+    for (var t in list) {
+      if (list[t].color === 'red') { pinkTaken = true; pinkName = t; }
+      if (list[t].color === 'blue') { blueTaken = true; blueName = t; }
+    }
     $('card-pink').classList.toggle('disabled', pinkTaken);
     $('card-blue').classList.toggle('disabled', blueTaken);
-    if (pinkTaken && !blueTaken) pickColor('blue');
-    else if (!pinkTaken && blueTaken) pickColor('pink');
-    else pickColor(null);
+    $('pink-status').textContent = pinkTaken ? 'Join ' + pinkName : 'Available - You will be Captain';
+    $('blue-status').textContent = blueTaken ? 'Join ' + blueName : 'Available - You will be Captain';
+    if (pinkTaken && !blueTaken) { pickTeam('blue'); }
+    else if (!pinkTaken && blueTaken) { pickTeam('pink'); }
+    else { pickTeam(null); }
   });
 }
 
-function pickColor(color) {
+function pickTeam(color) {
   pickedColor = color;
   $('card-pink').classList.toggle('selected', color === 'pink');
   $('card-blue').classList.toggle('selected', color === 'blue');
-  var btn = $('btn-create');
-  btn.className = 'btn btn-' + color;
-  if (color === 'pink') { btn.style.background = 'linear-gradient(135deg,var(--pink),#ff1493)'; btn.style.boxShadow = '0 4px 20px var(--pink-glow)'; }
-  else if (color === 'blue') { btn.style.background = 'linear-gradient(135deg,var(--blue),#2d8cf0)'; btn.style.boxShadow = '0 4px 20px var(--blue-glow)'; }
+  var wrap = $('team-name-wrap');
+  var btn = $('btn-join');
+  if (color) {
+    var isTaken = $(color === 'pink' ? 'card-pink' : 'card-blue').classList.contains('disabled');
+    wrap.style.display = isTaken ? 'none' : 'block';
+    btn.className = 'btn btn-' + color;
+    btn.textContent = isTaken ? 'Join ' + (color==='pink'?'Team Pink':'Team Blue') : 'Create Team & Start Hunting';
+    if (!isTaken) { $('create-team-name').focus(); }
+  } else {
+    wrap.style.display = 'none';
+    btn.className = 'btn btn-pink';
+    btn.textContent = 'Pick a team first';
+    btn.disabled = true;
+  }
 }
 
-function loadTeamList() {
-  var container = $('team-list');
-  container.innerHTML = '<div class="step-sub" style="color:var(--text-faint)">Loading teams...</div>';
-  fetch('/api/team/list').then(function(r){return r.json();}).then(function(list){
-    var keys = Object.keys(list);
-    if (keys.length === 0) {
-      container.innerHTML = '<div class="step-sub" style="color:var(--text-faint)">No teams yet. Go back and create one!</div>';
-      return;
-    }
-    container.innerHTML = keys.map(function(n){
-      var t = list[n];
-      var cls = t.color === 'red' ? 'pink' : 'blue';
-      return '<div class="team-list-item" onclick="joinExistingTeam(\'' + esc(n) + '\')">' +
-        '<div class="info">' +
-          '<span class="dot ' + cls + '" title="' + cls + '" style="flex-shrink:0"></span>' +
-          '<div>' +
-            '<div class="name">' + esc(n) + ' <span style="font-size:11px;color:var(--text-faint);font-weight:400">(' + esc(cls) + ')</span></div>' +
-            '<div class="count">' + (t.member_count||0) + ' ' + ((t.member_count||0)===1?'member':'members') + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<span class="badge">Join &rarr;</span>' +
-      '</div>';
-    }).join('');
-  });
-}
-
-// ================== CREATE / JOIN ==================
-function createTeam() {
-  var name = $('create-team-name').value.trim();
-  if (!name) { setError('create-error', 'Enter a team name.'); return; }
-  if (!pickedColor) { setError('create-error', 'Pick Pink or Blue team.'); return; }
+function doJoin() {
+  if (!pickedColor) { setError('pick-error', 'Pick Pink or Blue first.'); return; }
   var apiColor = pickedColor === 'pink' ? 'red' : 'blue';
-  var f = new FormData();
-  f.append('team', name); f.append('member', myMember); f.append('color', apiColor);
-  fetch('/api/team/create', {method:'POST', body:f})
-    .then(function(r){return r.json();})
-    .then(function(d){
+  var isTaken = $(pickedColor === 'pink' ? 'card-pink' : 'card-blue').classList.contains('disabled');
+
+  if (isTaken) {
+    // Join existing team
+    var teamName = '';
+    fetch('/api/team/list').then(function(r){return r.json();}).then(function(list){
+      for (var t in list) { if (list[t].color === apiColor) { teamName = t; break; } }
+      if (!teamName) { setError('pick-error', 'Team not found.'); return; }
+      var f = new FormData();
+      f.append('team', teamName); f.append('member', myMember);
+      fetch('/api/team/join', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+        if (d.success) {
+          myTeam = teamName; localStorage.setItem(TEAM_KEY, teamName); localStorage.setItem(MEMBER_KEY, myMember);
+          applyTeamColor(d.color);
+          show('hunt-area'); loadAll();
+          showToast('Joined ' + teamName + '! Good luck, ' + myMember + '!', 'success');
+        } else { setError('pick-error', d.error || 'Failed to join'); }
+      });
+    });
+  } else {
+    // Create new team (become captain)
+    var name = $('create-team-name').value.trim();
+    if (!name) { setError('pick-error', 'Enter a team name.'); return; }
+    var f = new FormData();
+    f.append('team', name); f.append('member', myMember); f.append('color', apiColor);
+    fetch('/api/team/create', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
       if (d.success) {
         myTeam = name; localStorage.setItem(TEAM_KEY, name); localStorage.setItem(MEMBER_KEY, myMember);
         applyTeamColor(d.color);
         show('hunt-area'); loadAll();
         showToast('Welcome, Captain ' + myMember + '! Get hunting!', 'success');
-      } else { setError('create-error', d.error || 'Failed'); }
+      } else { setError('pick-error', d.error || 'Failed to create'); }
     });
+  }
 }
 
-function joinExistingTeam(teamName) {
+function previewDashPhoto(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = $('dash-photo-preview');
+      var box = $('dash-photo-box');
+      img.src = e.target.result;
+      box.classList.add('has-photo');
+      box.querySelector('.photo-label').textContent = 'Photo attached!';
+      $('btn-submit-proof').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function submitProof() {
+  var photoInput = $('dash-photo-input');
+  if (photoInput.files.length === 0) { showToast('Attach a photo first!', 'error'); return; }
+  var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
+  var btn = $('btn-submit-proof');
+  btn.disabled = true; btn.textContent = 'Saving...';
   var f = new FormData();
-  f.append('team', teamName); f.append('member', myMember);
-  fetch('/api/team/join', {method:'POST', body:f})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if (d.success) {
-        myTeam = teamName; localStorage.setItem(TEAM_KEY, teamName); localStorage.setItem(MEMBER_KEY, myMember);
-        applyTeamColor(d.color);
-        show('hunt-area'); loadAll();
-        showToast('Joined ' + teamName + '! Good luck, ' + myMember + '!', 'success');
-      } else { setError('join-error', d.error || 'Failed'); }
-    });
+  f.append('team', myTeam); f.append('mission_id', curId); f.append('photo', photoInput.files[0]);
+  fetch('/api/submit', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+    if (d.correct) {
+      var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
+      showToast('Mission complete! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      $('dash-photo-box').classList.remove('has-photo');
+      $('dash-photo-preview').style.display = 'none';
+      $('dash-photo-preview').src = '';
+      photoInput.value = '';
+      btn.style.display = 'none';
+      loadAll();
+    } else {
+      btn.disabled = false; btn.textContent = 'Submit Proof & Complete Mission';
+      showToast(d.error || 'Something went wrong.', 'error');
+    }
+  });
 }
 
 function leaveTeam() {
@@ -708,6 +730,5 @@ if (myTeam && myMember) {
 
 setInterval(function(){ if (myTeam) loadAll(); }, 5000);
 </script>
-
 </body>
 </html>

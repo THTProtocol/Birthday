@@ -60,9 +60,9 @@ total = sum(len(json.load(open(os.path.join(BASE_DIR, f'missions_{c}.json')))['m
 print(f"\nGenerated {total} mission QRs ({total//2} red + {total//2} blue) + 4 decoy QRs")
 print(f"Base URL: {BASE_URL}")
 print(f"Output:   {QR_DIR}")
-print(f"\nRed QRs — hide these for the Red team's hunt:")
+print(f"\nRed QRs  -  hide these for the Red team's hunt:")
 for m in json.load(open(os.path.join(BASE_DIR, 'missions_red.json')))['missions']:
     print(f"  Red {m['id']:2d}: {m['location']}")
-print(f"\nBlue QRs — hide these for the Blue team's hunt:")
+print(f"\nBlue QRs  -  hide these for the Blue team's hunt:")
 for m in json.load(open(os.path.join(BASE_DIR, 'missions_blue.json')))['missions']:
     print(f"  Blue {m['id']:2d}: {m['location']}")
