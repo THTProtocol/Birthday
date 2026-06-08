@@ -75,13 +75,13 @@
       "title": "The Final Toast"
     },
     {
-      "id": 9,
-      "title": "Brand New Mission",
-      "location": "The Roof",
-      "task": "Find the hidden microphone",
-      "scan_hint": "Under the DJ booth",
       "hint": "Tape on underside of monitor",
-      "task_image": ""
+      "id": 9,
+      "location": "The Roof",
+      "scan_hint": "Under the DJ booth",
+      "task": "Find the hidden microphone",
+      "task_image": "",
+      "title": "Brand New Mission"
     }
   ]
 }
