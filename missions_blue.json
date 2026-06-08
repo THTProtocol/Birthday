@@ -1,0 +1,87 @@
+{
+  "title": "Klaudusia's Birthday - Team Blue",
+  "hint_cost": 3,
+  "missions": [
+    {
+      "hint": "The right-hand concrete pillar at Hal 12 entrance. The QR is at shoulder height on the side facing AWAY from the doors \u2014 you'll see it when approaching from the parking lot.",
+      "id": 1,
+      "location": "Hal 12 main entrance",
+      "scan_hint": "On the pillar to the right of the main entrance doors",
+      "task": "Find the main entrance to Hal 12. Your entire team must form a human archway at the doors \u2014 arms linked overhead like a gate. Someone must walk through the arch. Photo proof. The more dramatic the walk-through, the better.",
+      "task_image": "",
+      "title": "Gate Guardians"
+    },
+    {
+      "hint": "It's the emerald-green container at the south end \u2014 not the blue one. Go around to the back. The QR is taped to the metal at about knee height, near the corner closest to the wooden benches.",
+      "id": 2,
+      "location": "Shipping container shops / food area",
+      "scan_hint": "Behind the green container near the seating area",
+      "task": "Race to the colorful shipping containers. Each team member must find a DIFFERENT colored container and pose like they own a shop there. What does your container sell? Name your business. Group photo with everyone in front of their container.",
+      "task_image": "",
+      "title": "Container Quest"
+    },
+    {
+      "hint": "It's the long rectangular planter with tall grasses \u2014 not the round ones. Lie on your back and look up at the underside of the wooden rim. The QR is on the inner lip, about a meter from the left end.",
+      "id": 3,
+      "location": " green area / rain gardens",
+      "scan_hint": "Under the largest planter box in the rain garden",
+      "task": "Find the planted rain gardens and winding paths in the green zone. Your team must navigate the paths blindfolded \u2014 one person guides, the rest follow with eyes closed (or hands over eyes). Record a 15-second video. The guide must use only absurd directions ('two penguin steps left, now waddle forward').",
+      "task_image": "",
+      "title": "The Green Labyrinth"
+    },
+    {
+      "hint": "Walk to the midpoint of the tunnel where it curves slightly. The QR is on the left wall (walking toward the green area), tucked into a small recess between two concrete panels, about chest height.",
+      "id": 4,
+      "location": "Bike/pedestrian tunnel under the railway",
+      "scan_hint": "In the middle of the tunnel, on the wall at the bend",
+      "task": "Find the long tunnel under the tracks. Your team must create a spontaneous song about Klaudusia using the tunnel's natural echo. Clap, stomp, sing, beatbox \u2014 use the acoustics. Record 20 seconds. Bonus if strangers join in.",
+      "task_image": "",
+      "title": "Tunnel Symphony"
+    },
+    {
+      "hint": "It's the twisted copper/steel sculpture that looks like a spiral \u2014 not the stone carvings. Crouch down at the sculpture's base on the north side. The QR is tucked into a gap between two metal plates, just above ground level.",
+      "id": 5,
+      "location": "Art walk / sculpture path",
+      "scan_hint": "At the base of the twisted metal sculpture along the art path",
+      "task": "Find an art installation or sculpture that casts an interesting shadow. Your team must become part of the shadow \u2014 arrange yourselves so your shadows merge with the art's shadow to create a NEW creature or shape. Photo from above if possible. Name your shadow creature.",
+      "task_image": "",
+      "title": "Shadow Detectives"
+    },
+    {
+      "hint": "The curved wooden bench facing the plaza \u2014 not the straight ones near the wall. Reach underneath from the FRONT side. The QR is stuck to the underside of the seating plank, about 40cm from the right end.",
+      "id": 6,
+      "location": " open plaza / gathering area",
+      "scan_hint": "Under the bench closest to the open plaza center",
+      "task": "Your team is producing Klaudusia's birthday mixtape. Assign each team member a music genre (opera, rap, country, death metal, lullaby). Take turns singing 'Happy Birthday' in your assigned style. Film the entire performance. The transitions are everything.",
+      "task_image": "",
+      "title": "The Mixtape"
+    },
+    {
+      "hint": "The small notice board on the wooden post \u2014 not the big one in the main square. Reach behind the board from the top. The QR is taped flat against the back, facing downward.",
+      "id": 7,
+      "location": " community garden or seating nook",
+      "scan_hint": "Behind the community notice board near the garden",
+      "task": "As a team, compose a one-sentence wish for Klaudusia's next year. It must rhyme. Write it on anything you can find (leaf, receipt, napkin, phone screen). Take a photo of your message with all team hands holding it up. Best rhyme wins bragging rights.",
+      "task_image": "",
+      "title": "Message in a Bottle"
+    },
+    {
+      "hint": "Look under the main table where people gather at the end. The QR is on the UNDERSIDE of the table \u2014 you have to duck under and look up. It's near the center, not the edges.",
+      "id": 8,
+      "location": " final gathering spot",
+      "scan_hint": "Under the final meeting table near the gathering point",
+      "task": "Create a human pyramid or tower with your entire team. Every team member must be touching at least two others. Hold it for 5 seconds. Photo required \u2014 this is your victory shot. Then find the Gamemaster and present your team for the final score!",
+      "task_image": "",
+      "title": "The Final Toast"
+    },
+    {
+      "id": 9,
+      "title": "Brand New Mission",
+      "location": "The Roof",
+      "task": "Find the hidden microphone",
+      "scan_hint": "Under the DJ booth",
+      "hint": "Tape on underside of monitor",
+      "task_image": ""
+    }
+  ]
+}

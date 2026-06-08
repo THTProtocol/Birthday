@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Editor — Klaudusia's Birthday Hunt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  :root {
+    --bg: #050810; --surface: rgba(255,255,255,0.04); --surface-hover: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.15);
+    --text: #e8e6e3; --text-secondary: rgba(255,255,255,0.50); --text-muted: rgba(255,255,255,0.32);
+    --pink: #ff5da5; --pink-dim: rgba(255,93,165,0.15); --pink-bright: #ff85c0;
+    --blue: #4da6ff; --blue-dim: rgba(77,166,255,0.15); --blue-bright: #7cc0ff;
+    --gold: #ffd166; --gold-dim: rgba(255,209,102,0.12);
+    --danger: #ff5a5a; --danger-dim: rgba(255,90,90,0.12);
+    --success: #6ee7b7; --success-dim: rgba(110,231,183,0.12);
+    --radius: 18px; --radius-sm: 10px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --glow-pink: 0 0 40px rgba(255,93,165,0.15);
+    --glow-blue: 0 0 40px rgba(77,166,255,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height:1.5;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,93,165,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(77,166,255,0.04) 0%, transparent 50%);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+
+  /* --- Header --- */
+  .app-header {
+    position:sticky; top:0; z-index:50;
+    background:rgba(5,8,16,0.85); backdrop-filter:blur(20px) saturate(1.4);
+    border-bottom:1px solid var(--border);
+    padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .app-header .brand { display:flex; align-items:center; gap:12px; }
+  .app-header .brand-icon {
+    width:40px; height:40px; border-radius:12px;
+    background:linear-gradient(135deg,var(--pink),var(--blue));
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+    box-shadow:0 4px 16px rgba(255,93,165,0.25);
+  }
+  .app-header h1 { font-size:17px; font-weight:700; letter-spacing:-0.2px; }
+  .app-header .subtitle { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .app-header .nav { display:flex; gap:8px; }
+  .btn-ghost {
+    padding:8px 16px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:500;
+    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+    transition:all 0.15s;
+  }
+  .btn-ghost:hover { border-color:var(--border-hover); color:var(--text); background:var(--surface-hover); }
+
+  /* --- Team Tabs --- */
+  .tab-bar {
+    display:flex; padding:0 24px; margin-top:20px; margin-bottom:8px; gap:4px;
+  }
+  .tab-btn {
+    flex:1; padding:14px 20px; border-radius:14px; border:none;
+    background:transparent; color:var(--text-muted); font-size:14px; font-weight:600;
+    cursor:pointer; transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    position:relative; overflow:hidden;
+  }
+  .tab-btn::before {
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    background:var(--surface); opacity:0; transition:opacity 0.2s;
+  }
+  .tab-btn:hover::before { opacity:1; }
+  .tab-btn .dot { width:8px; height:8px; border-radius:50%; transition:all 0.3s; }
+  .tab-btn.pink-active { color:var(--pink); }
+  .tab-btn.pink-active::before { opacity:1; background:var(--pink-dim); }
+  .tab-btn.pink-active .dot { background:var(--pink); box-shadow:0 0 12px var(--pink); }
+  .tab-btn.blue-active { color:var(--blue); }
+  .tab-btn.blue-active::before { opacity:1; background:var(--blue-dim); }
+  .tab-btn.blue-active .dot { background:var(--blue); box-shadow:0 0 12px var(--blue); }
+
+  /* --- Stats Bar --- */
+  .stats-bar {
+    display:flex; padding:0 24px 16px; gap:12px; flex-wrap:wrap;
+  }
+  .stat-pill {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:8px 14px; font-size:12px; color:var(--text-secondary);
+    display:flex; align-items:center; gap:8px;
+  }
+  .stat-pill .val { font-weight:700; color:var(--text); }
+  .stat-pill .sep { width:1px; height:14px; background:var(--border); }
+
+  /* --- Toolbar --- */
+  .toolbar {
+    display:flex; align-items:center; justify-content:space-between; padding:8px 24px 16px; gap:12px; flex-wrap:wrap;
+  }
+  .toolbar .group { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn {
+    padding:10px 18px; border-radius:var(--radius-sm); border:none;
+    font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-primary.pink {
+    background:linear-gradient(135deg,var(--pink),#ff1493);
+    color:#fff; box-shadow:0 4px 20px rgba(255,93,165,0.2);
+  }
+  .btn-primary.pink:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(255,93,165,0.35); }
+  .btn-primary.blue {
+    background:linear-gradient(135deg,var(--blue),#2d8cf0);
+    color:#fff; box-shadow:0 4px 20px rgba(77,166,255,0.2);
+  }
+  .btn-primary.blue:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(77,166,255,0.35); }
+  .btn-secondary {
+    background:var(--surface); border:1px solid var(--border); color:var(--text-secondary);
+  }
+  .btn-secondary:hover { border-color:var(--border-hover); color:var(--text); background:var(--surface-hover); }
+  .btn-small { padding:6px 12px; font-size:12px; }
+
+  /* --- Mission Cards --- */
+  .mission-list { padding:0 24px 140px; display:flex; flex-direction:column; gap:12px; }
+  .mission-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    transition:all 0.25s cubic-bezier(0.4,0,0.2,1); overflow:hidden;
+  }
+  .mission-card:hover { border-color:var(--border-hover); }
+  .mission-card.pink-theme { border-color:rgba(255,93,165,0.15); }
+  .mission-card.pink-theme:hover { border-color:rgba(255,93,165,0.3); box-shadow:var(--glow-pink); }
+  .mission-card.blue-theme { border-color:rgba(77,166,255,0.15); }
+  .mission-card.blue-theme:hover { border-color:rgba(77,166,255,0.3); box-shadow:var(--glow-blue); }
+  .mission-card.dragging { opacity:0.5; transform:scale(0.98); }
+
+  .card-header {
+    display:flex; align-items:center; gap:12px; padding:16px 20px;
+    cursor:pointer; user-select:none;
+  }
+  .drag-handle {
+    width:20px; height:20px; cursor:grab; color:var(--text-muted); display:flex; align-items:center; justify-content:center;
+    opacity:0.5; transition:opacity 0.15s;
+  }
+  .drag-handle:hover { opacity:1; }
+  .drag-handle:active { cursor:grabbing; }
+  .mission-num {
+    width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:800; flex-shrink:0;
+  }
+  .pink-theme .mission-num { background:var(--pink-dim); color:var(--pink); }
+  .blue-theme .mission-num { background:var(--blue-dim); color:var(--blue); }
+  .mission-title {
+    flex:1; font-size:15px; font-weight:600; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .mission-title .live-val { color:var(--text-secondary); font-weight:400; }
+  .card-actions {
+    display:flex; gap:6px; opacity:0; transition:opacity 0.15s;
+  }
+  .mission-card:hover .card-actions { opacity:1; }
+  .action-btn {
+    width:28px; height:28px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-muted); font-size:13px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s;
+  }
+  .action-btn:hover { border-color:var(--text-secondary); color:var(--text); background:var(--surface-hover); }
+  .action-btn.danger:hover { border-color:var(--danger); color:var(--danger); background:var(--danger-dim); }
+  .expand-arrow {
+    width:24px; height:24px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; color:var(--text-muted);
+    transition:transform 0.25s, color 0.15s; font-size:12px;
+  }
+  .mission-card.expanded .expand-arrow { transform:rotate(180deg); }
+  .expand-arrow:hover { color:var(--text); }
+
+  .card-body {
+    display:none; padding:0 20px 20px;
+  }
+  .mission-card.expanded .card-body { display:block; }
+
+  /* --- Form Grid --- */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-grid .full { grid-column:span 2; }
+  @media (max-width:700px) { .form-grid { grid-template-columns:1fr; } .form-grid .full { grid-column:span 1; } }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label {
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+    color:var(--text-muted);
+  }
+  .field label .hint { font-size:11px; text-transform:none; letter-spacing:0; color:var(--text-secondary); font-weight:400; }
+  .field input[type="text"], .field textarea {
+    width:100%; padding:10px 14px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); background:rgba(255,255,255,0.04);
+    color:var(--text); font-size:14px; font-family:inherit; outline:none;
+    transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input[type="text"]:focus, .field textarea:focus {
+    border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,209,102,0.08);
+  }
+  .field textarea { min-height:80px; resize:vertical; line-height:1.5; }
+  .field textarea.large { min-height:120px; }
+  .char-count { font-size:11px; color:var(--text-muted); text-align:right; margin-top:2px; }
+  .input-status { font-size:11px; margin-top:2px; display:flex; gap:6px; align-items:center; }
+  .input-status .bad { color:var(--danger); }
+  .input-status .good { color:var(--success); }
+
+  /* --- Image Section --- */
+  .img-section {
+    border:1.5px dashed var(--border); border-radius:var(--radius-sm); padding:14px;
+    transition:border-color 0.2s; background:rgba(255,255,255,0.02);
+  }
+  .img-section:hover { border-color:var(--border-hover); }
+  .img-section.has-image { border-style:solid; border-color:var(--border); padding:12px; }
+  .img-preview {
+    max-width:100%; max-height:220px; border-radius:12px; margin-bottom:10px;
+    border:1px solid var(--border); display:block;
+  }
+  .img-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .img-row input[type="text"] {
+    flex:1; padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:13px; outline:none;
+  }
+  .img-row input[type="file"] { display:none; }
+  .file-btn {
+    padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:500;
+    cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;
+  }
+  .file-btn:hover { border-color:var(--gold); color:var(--gold); }
+  .img-status { font-size:11px; color:var(--text-muted); }
+  .img-status.uploading { color:var(--gold); }
+
+  /* --- Preview Panel --- */
+  .preview-panel {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-top:16px;
+  }
+  .preview-panel .label {
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+    color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:8px;
+  }
+  .preview-card {
+    background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:18px;
+  }
+  .preview-card .preview-title { font-size:18px; font-weight:700; margin-bottom:4px; }
+  .preview-card .preview-loc { font-size:13px; color:var(--text-secondary); margin-bottom:12px; }
+  .preview-card .preview-img { max-width:100%; max-height:180px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border); }
+  .preview-card .preview-task { font-size:14px; line-height:1.6; color:var(--text); margin-bottom:14px; border-left:3px solid var(--border); padding-left:12px; }
+  .preview-card.pink-theme .preview-task { border-left-color:var(--pink); }
+  .preview-card.blue-theme .preview-task { border-left-color:var(--blue); }
+  .preview-card .preview-meta { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; }
+  .meta-tag { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--text-secondary); }
+
+  /* --- Save Bar --- */
+  .save-bar {
+    position:fixed; bottom:0; left:0; right:0; z-index:60;
+    background:rgba(5,8,16,0.92); backdrop-filter:blur(20px) saturate(1.4);
+    border-top:1px solid var(--border); padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .save-status { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .save-status .dot-ping {
+    width:8px; height:8px; border-radius:50%;
+    animation:pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.8); }
+  }
+  .save-status .unsaved .dot-ping { background:var(--gold); }
+  .save-status .saved .dot-ping { background:var(--success); }
+  .save-status .error .dot-ping { background:var(--danger); }
+  .save-status .unsaved { color:var(--gold); }
+  .save-status .saved { color:var(--success); }
+  .save-status .error { color:var(--danger); }
+
+  .toast-wrap {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+    z-index:70; opacity:0; pointer-events:none; transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .toast-wrap.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+  .toast-bubble {
+    background:#161a24; border:1px solid var(--border); border-radius:14px; padding:14px 24px;
+    box-shadow:var(--shadow); font-size:14px; max-width:90vw;
+    display:flex; align-items:center; gap:10px;
+  }
+  .toast-bubble.success { border-color:rgba(110,231,183,0.3); color:var(--success); }
+  .toast-bubble.error { border-color:rgba(255,90,90,0.3); color:var(--danger); }
+
+  .empty-state {
+    text-align:center; padding:60px 20px; color:var(--text-muted);
+  }
+  .empty-state .icon { font-size:48px; margin-bottom:16px; }
+  .empty-state h3 { font-size:18px; color:var(--text-secondary); margin-bottom:8px; }
+
+  .confirm-overlay {
+    position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center;
+  }
+  .confirm-overlay.show { display:flex; }
+  .confirm-box {
+    background:#0f1220; border:1px solid var(--border); border-radius:var(--radius);
+    padding:24px; max-width:360px; width:90%; box-shadow:var(--shadow);
+  }
+  .confirm-box h3 { font-size:16px; margin-bottom:8px; }
+  .confirm-box p { font-size:13px; color:var(--text-secondary); margin-bottom:20px; }
+  .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="brand">
+    <div class="brand-icon">&#x270F;</div>
+    <div>
+      <h1>Mission Editor</h1>
+      <div class="subtitle" id="editor-subtitle">Loading missions...</div>
+    </div>
+  </div>
+  <div class="nav">
+    <a href="/admin" class="btn-ghost">&#x2699; Admin Panel</a>
+    <a href="/" class="btn-ghost">&#x1F3C3; Player View</a>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn" id="tab-red" onclick="switchTeam('red')">
+    <span class="dot" style="background:var(--pink)"></span>Team Pink
+  </button>
+  <button class="tab-btn" id="tab-blue" onclick="switchTeam('blue')">
+    <span class="dot" style="background:var(--blue)"></span>Team Blue
+  </button>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-pill"><span>Missions</span><span class="sep"></span><span class="val" id="stat-count">0</span></div>
+  <div class="stat-pill"><span>Total words</span><span class="sep"></span><span class="val" id="stat-words">0</span></div>
+  <div class="stat-pill"><span>Images set</span><span class="sep"></span><span class="val" id="stat-images">0</span></div>
+</div>
+
+<div class="toolbar">
+  <div class="group">
+    <button class="btn btn-primary pink" id="add-btn" onclick="addMission()">&#x2795; Add Mission</button>
+    <button class="btn btn-secondary btn-small" onclick="expandAll()">Expand All</button>
+    <button class="btn btn-secondary btn-small" onclick="collapseAll()">Collapse All</button>
+  </div>
+  <div class="group">
+    <button class="btn btn-secondary btn-small" onclick="location.href='/qr'">&#x1F4F7; Generate QRs</button>
+  </div>
+</div>
+
+<div class="mission-list" id="mission-list">
+  <div class="empty-state" id="empty-state">
+    <div class="icon">&#x1F4CB;</div>
+    <h3>No missions yet</h3>
+    <p>Create your first mission to get started.</p>
+  </div>
+</div>
+
+<div class="save-bar">
+  <div class="save-status unsaved" id="save-status-display">
+    <div class="dot-ping"></div>Unsaved changes
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span style="font-size:12px; color:var(--text-muted);">Ctrl+S</span>
+    <button class="btn btn-primary pink" id="save-btn" onclick="saveAll()">Save Changes</button>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"><div class="toast-bubble" id="toast-bubble"></div></div>
+
+<div class="confirm-overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Delete mission?</h3>
+    <p id="confirm-body">This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-small" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-primary" id="confirm-action" style="background:var(--danger)">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   STATE
+   ========================= */
+var ADMIN_PW = localStorage.getItem('admin_pw') || '';
+if (!ADMIN_PW) {
+  var pw = prompt('Enter editor password:');
+  if (pw) { localStorage.setItem('admin_pw', pw); location.reload(); }
+}
+
+var missions = [];
+var missionRecords = []; // stores original objects to preserve unknown fields
+var currentColor = 'red';
+var dirtyFlag = false;
+var dragSrcIndex = null;
+
+/* =========================
+   UI HELPERS
+   ========================= */
+function $(id){ return document.getElementById(id); }
+
+function showToast(msg, type) {
+  var w = $('toast-wrap'); var b = $('toast-bubble');
+  b.textContent = msg; b.className = 'toast-bubble ' + type;
+  w.classList.add('show');
+  setTimeout(function(){ w.classList.remove('show'); }, 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function setSaveStatus(status, text) {
+  var s = $('save-status-display');
+  s.className = 'save-status ' + status;
+  s.innerHTML = '<div class="dot-ping"></div>' + (text || status);
+}
+
+function updateThemeButtons() {
+  var isPink = currentColor === 'red';
+  $('tab-red').className = 'tab-btn ' + (isPink ? 'pink-active' : '');
+  $('tab-blue').className = 'tab-btn ' + (!isPink ? 'blue-active' : '');
+  $('add-btn').className = 'btn btn-primary ' + (isPink ? 'pink' : 'blue');
+  $('save-btn').className = 'btn btn-primary ' + (isPink ? 'pink' : 'blue');
+}
+
+function updateStats() {
+  $('stat-count').textContent = missions.length;
+  var words = missions.reduce(function(a,m){ return a + (m.title||'').split(/\s+/).length + (m.task||'').split(/\s+/).length + (m.hint||'').split(/\s+/).length; }, 0);
+  $('stat-words').textContent = words.toLocaleString();
+  var imgs = missions.filter(function(m){ return m.task_image; }).length;
+  $('stat-images').textContent = imgs;
+}
+
+function dirty() {
+  if (!dirtyFlag) { dirtyFlag = true; setSaveStatus('unsaved', 'Unsaved changes'); }
+}
+
+function markSaved(text) {
+  dirtyFlag = false;
+  setSaveStatus('saved', text || 'Saved');
+}
+
+/* =========================
+   CRUD
+   ========================= */
+function addMission() {
+  var nextId = missions.length ? Math.max.apply(null, missions.map(function(m){ return m.id; })) + 1 : 1;
+  var blank = {
+    id: nextId, title: '', location: '', task: '', scan_hint: '', hint: '', task_image: ''
+  };
+  missions.push(blank);
+  missionRecords.push({});
+  render();
+  // expand the new card and focus title
+  setTimeout(function(){
+    var card = $('card-' + nextId);
+    if (card) { card.classList.add('expanded'); $('title-' + nextId).focus(); }
+  }, 30);
+  dirty();
+}
+
+function duplicateMission(id) {
+  var idx = missions.findIndex(function(m){ return m.id === id; });
+  if (idx === -1) return;
+  var src = missions[idx];
+  var nextId = missions.length ? Math.max.apply(null, missions.map(function(m){ return m.id; })) + 1 : 1;
+  var copy = JSON.parse(JSON.stringify(src));
+  copy.id = nextId;
+  copy.title = (copy.title || '') + ' (Copy)';
+  missions.splice(idx + 1, 0, copy);
+  missionRecords.splice(idx + 1, 0, {});
+  render();
+  setTimeout(function(){
+    var card = $('card-' + nextId);
+    if (card) { card.classList.add('expanded'); $('title-' + nextId).focus(); }
+  }, 30);
+  dirty();
+}
+
+function deleteMission(id) {
+  openConfirm('Delete mission ' + id + '?', 'This cannot be undone.', function(){
+    missions = missions.filter(function(m){ return m.id !== id; });
+    missionRecords = missions.map(function(m,i){
+      return missionRecords.find(function(r,ri){ return r && missions[ri] === m; }) || {};
+    });
+    render();
+    dirty();
+  });
+}
+
+function toggleCard(id) { $('card-' + id).classList.toggle('expanded'); }
+function expandAll() { document.querySelectorAll('.mission-card').forEach(function(c){c.classList.add('expanded');}); }
+function collapseAll() { document.querySelectorAll('.mission-card').forEach(function(c){c.classList.remove('expanded');}); }
+
+/* =========================
+   DRAG & DROP REORDER
+   ========================= */
+function setupDrag(el, idx) {
+  el.setAttribute('draggable', 'true');
+  el.addEventListener('dragstart', function(e){
+    dragSrcIndex = idx; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', function(){ el.classList.remove('dragging'); dragSrcIndex = null; });
+  el.addEventListener('dragover', function(e){ e.preventDefault(); return false; });
+  el.addEventListener('dragenter', function(){ if (dragSrcIndex !== null) el.style.borderColor = 'var(--gold)'; });
+  el.addEventListener('dragleave', function(){ el.style.borderColor = ''; });
+  el.addEventListener('drop', function(e){
+    e.stopPropagation();
+    if (dragSrcIndex === null) return;
+    var targetIdx = parseInt(el.dataset.idx);
+    if (dragSrcIndex === targetIdx) return;
+    var moved = missions.splice(dragSrcIndex, 1)[0];
+    missions.splice(targetIdx, 0, moved);
+    var movedRec = missionRecords.splice(dragSrcIndex, 1)[0];
+    missionRecords.splice(targetIdx, 0, movedRec);
+    dirty(); render();
+  });
+}
+
+/* =========================
+   IMAGE
+   ========================= */
+function previewImg(id) {
+  var url = $('img-' + id).value.trim();
+  var preview = $('preview-' + id);
+  var box = $('imgbox-' + id);
+  if (url) { preview.src = url; preview.style.display = 'block'; box.classList.add('has-image'); }
+  else { preview.style.display = 'none'; box.classList.remove('has-image'); }
+  updateStats();
+}
+
+async function uploadImg(id) {
+  var input = $('imgfile-' + id);
+  if (!input.files.length) return;
+  var status = $('imgstatus-' + id);
+  status.textContent = 'Uploading...'; status.classList.add('uploading');
+  var f = new FormData();
+  f.append('password', ADMIN_PW); f.append('image', input.files[0]);
+  try {
+    var r = await fetch('/api/editor/upload', {method:'POST', body:f});
+    var d = await r.json();
+    if (d.success) { $('img-' + id).value = d.url; previewImg(id); dirty(); status.classList.remove('uploading'); status.textContent = 'Uploaded'; }
+    else { status.classList.remove('uploading'); status.textContent = d.error || 'Upload failed'; showToast(d.error || 'Upload failed', 'error'); }
+  } catch(e) { status.classList.remove('uploading'); status.textContent = 'Network error'; showToast('Network error during upload', 'error'); }
+}
+
+/* =========================
+   CONFIRM MODAL
+   ========================= */
+var confirmCallback = null;
+function openConfirm(title, body, cb) {
+  $('confirm-title').textContent = title;
+  $('confirm-body').textContent = body;
+  $('confirm-overlay').classList.add('show');
+  confirmCallback = cb;
+  $('confirm-action').onclick = function(){
+    $('confirm-overlay').classList.remove('show');
+    if (confirmCallback) confirmCallback();
+    confirmCallback = null;
+  };
+}
+function closeConfirm() { $('confirm-overlay').classList.remove('show'); confirmCallback = null; }
+
+/* =========================
+   RENDER
+   ========================= */
+function render() {
+  var isPink = currentColor === 'red';
+  var list = $('mission-list');
+  if (missions.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">&#x1F4CB;</div><h3>No missions yet</h3><p>Create your first mission to get started.</p></div>';
+    updateStats(); return;
+  }
+  list.innerHTML = '';
+  missions.forEach(function(m, idx) {
+    var card = document.createElement('div');
+    card.className = 'mission-card ' + (isPink ? 'pink-theme' : 'blue-theme') + (m.expanded ? ' expanded' : '');
+    card.id = 'card-' + m.id;
+    card.dataset.idx = String(idx);
+    var imgUrl = m.task_image || '';
+    var imgHtml = imgUrl
+      ? '<img class="img-preview" id="preview-' + m.id + '" src="' + escapeHtml(imgUrl) + '" alt="">'
+      : '<img class="img-preview" id="preview-' + m.id + '" src="" alt="" style="display:none">';
+
+    card.innerHTML =
+      '<div class="card-header" onclick="toggleCard(' + m.id + ')">' +
+        '<div class="drag-handle" title="Drag to reorder">&#x2630;</div>' +
+        '<div class="mission-num">' + m.id + '</div>' +
+        '<div class="mission-title"><span class="live-val" id="title-display-' + m.id + '">' + escapeHtml(m.title || 'Untitled Mission') + '</span></div>' +
+        '<div class="card-actions">' +
+          '<button class="action-btn" title="Duplicate" onclick="event.stopPropagation(); duplicateMission(' + m.id + ')">&#x2398;</button>' +
+          '<button class="action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteMission(' + m.id + ')">&#x2715;</button>' +
+        '</div>' +
+        '<div class="expand-arrow">&#x25BC;</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="form-grid">' +
+          '<div class="field">' +
+            '<label>Mission Title <span class="hint">(displayed to players)</span></label>' +
+            '<input type="text" id="title-' + m.id + '" value="' + escapeHtml(m.title||'') + '" placeholder="Mission title" oninput="onFieldChange(' + m.id + ', this, \'title\'); dirty()">' +
+            '<div class="char-count"><span id="title-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Location <span class="hint">(where the QR is hidden)</span></label>' +
+            '<input type="text" id="loc-' + m.id + '" value="' + escapeHtml(m.location||'') + '" placeholder="Location" oninput="dirty()">' +
+            '<div class="char-count"><span id="loc-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+          '<div class="field full">' +
+            '<label>Task <span class="hint">(what players must do — describe the challenge)</span></label>' +
+            '<textarea class="large" id="task-' + m.id + '" placeholder="Describe the challenge. Be specific: pose, photo requirements, props..." oninput="onFieldChange(' + m.id + ', this, \'task\'); dirty()">' + escapeHtml(m.task||'') + '</textarea>' +
+            '<div class="char-count"><span id="task-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Scan Hint <span class="hint">(general area, shown when unlocked)</span></label>' +
+            '<input type="text" id="scan-' + m.id + '" value="' + escapeHtml(m.scan_hint||'') + '" placeholder="Scan hint" oninput="dirty()">' +
+            '<div class="char-count"><span id="scan-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Paid Hint <span class="hint">(exact spot, costs 3 pts)</span></label>' +
+            '<input type="text" id="hint-' + m.id + '" value="' + escapeHtml(m.hint||'') + '" placeholder="Hint text" oninput="dirty()">' +
+            '<div class="char-count"><span id="hint-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+
+          '<div class="field full">' +
+            '<label>Task Image <span class="hint">(shown to players when QR is scanned)</span></label>' +
+            '<div class="img-section" id="imgbox-' + m.id + '">' + imgHtml +
+              '<div class="img-row">' +
+                '<input type="text" id="img-' + m.id + '" value="' + escapeHtml(imgUrl) + '" placeholder="/static/images/some_image.png or upload below" oninput="previewImg(' + m.id + '); dirty();">' +
+                '<input type="file" id="imgfile-' + m.id + '" accept="image/*" onchange="uploadImg(' + m.id + ')">' +
+                '<label for="imgfile-' + m.id + '" class="file-btn">&#x1F4F7; Upload</label>' +
+                '<span class="img-status" id="imgstatus-' + m.id + '"></span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="preview-panel">' +
+          '<div class="label">&#x1F441; Player Preview</div>' +
+          '<div class="preview-card ' + (isPink ? 'pink-theme' : 'blue-theme') + '" id="preview-panel-' + m.id + '">' +
+            '<div class="preview-title">' + escapeHtml(m.title || 'Untitled Mission') + '</div>' +
+            '<div class="preview-loc">&#x1F4CD; ' + escapeHtml(m.location || 'Unknown location') + '</div>' +
+            (imgUrl ? '<img class="preview-img" src="' + escapeHtml(imgUrl) + '" alt="">' : '') +
+            '<div class="preview-task">' + escapeHtml(m.task || 'No task yet...') + '</div>' +
+            '<div class="preview-meta">' +
+              '<div class="meta-tag">&#x1F50D; Scan hint: ' + escapeHtml(m.scan_hint || 'None') + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    list.appendChild(card);
+    setupDrag(card, idx);
+    // update counts
+    updateCounts(m.id);
+    updatePreview(m.id);
+
+  });
+  updateStats();
+}
+
+function onFieldChange(id, el, field) {
+  if (field === 'title') { $('title-display-' + id).textContent = el.value || 'Untitled Mission'; }
+  updateCounts(id); updatePreview(id);
+  if (field === 'task' || field === 'title') { updatePassStatus(id); }
+}
+
+function updateCounts(id) {
+  ['title','loc','task','scan','hint'].forEach(function(f){
+    var el = $(f + '-' + id);
+    if (el) { var c = $(f + '-count-' + id); if (c) c.textContent = String(el.value.length); }
+  });
+}
+
+function updatePreview(id) {
+  var panel = $('preview-panel-' + id); if (!panel) return;
+  var title = $('title-' + id).value;
+  var loc = $('loc-' + id).value;
+  var task = $('task-' + id).value;
+  var scan = $('scan-' + id).value;
+  var imgUrl = $('img-' + id).value.trim();
+  var isPink = currentColor === 'red';
+  panel.className = 'preview-card ' + (isPink ? 'pink-theme' : 'blue-theme');
+  panel.innerHTML =
+    '<div class="preview-title">' + escapeHtml(title || 'Untitled Mission') + '</div>' +
+    '<div class="preview-loc">&#x1F4CD; ' + escapeHtml(loc || 'Unknown location') + '</div>' +
+    (imgUrl ? '<img class="preview-img" src="' + escapeHtml(imgUrl) + '" alt="">' : '') +
+    '<div class="preview-task">' + escapeHtml(task || 'No task yet...') + '</div>' +
+    '<div class="preview-meta">' +
+      '<div class="meta-tag">&#x1F50D; Scan hint: ' + escapeHtml(scan || 'None') + '</div>' +
+    '</div>';
+}
+
+  else if (el.value.trim().length < 6) { st.innerHTML = '<span class="bad">&#x26A0; Very short passphrase</span>'; }
+  else { st.innerHTML = '<span class="good">&#x2713; OK</span>'; }
+}
+
+/* =========================
+   TEAM / LOAD
+   ========================= */
+function switchTeam(color) {
+  if (dirtyFlag && !confirm('You have unsaved changes for ' + (currentColor==='red'?'Team Red':'Team Blue') + '. Discard them?')) return;
+  currentColor = color;
+  updateThemeButtons();
+  var f = new FormData(); f.append('password', ADMIN_PW); f.append('color', color);
+  fetch('/api/editor/load', {method:'POST', body:f})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.missions) {
+        missions = d.missions;
+        missionRecords = d.missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+        $('editor-subtitle').textContent = 'Editing ' + (d.title || '') + ' — ' + missions.length + ' missions';
+        markSaved('Loaded'); dirtyFlag = false;
+        render();
+      } else { showToast(d.error || 'Failed to load', 'error'); }
+    });
+}
+
+/* =========================
+   SAVE
+   ========================= */
+async function saveAll() {
+  missions.forEach(function(m){
+    var idx = missions.indexOf(m);
+    var original = missionRecords[idx] || {};
+    // merge form values into original object to preserve unknown fields
+    original.id = m.id;
+    original.title = $('title-' + m.id).value;
+    original.location = $('loc-' + m.id).value;
+    original.task = $('task-' + m.id).value;
+    original.scan_hint = $('scan-' + m.id).value;
+    original.hint = $('hint-' + m.id).value;
+    original.task_image = $('img-' + m.id).value;
+    missions[idx] = original;
+  });
+
+  for (var i = 0; i < missions.length; i++) {
+    var m = missions[i];
+    if (!m.title.trim()) { showToast('Mission ' + m.id + ' needs a title', 'error'); toggleCard(m.id); $('title-' + m.id).focus(); return; }
+    if (!m.task.trim()) { showToast('Mission ' + m.id + ' needs a task', 'error'); toggleCard(m.id); $('task-' + m.id).focus(); return; }
+  }
+
+  var f = new FormData();
+  f.append('password', ADMIN_PW); f.append('color', currentColor);
+  f.append('missions', JSON.stringify(missions));
+
+  try {
+    var r = await fetch('/api/editor/save', {method:'POST', body:f});
+    var d = await r.json();
+    if (d.success) {
+      markSaved('Saved ' + d.count + ' missions');
+      showToast('Saved! Regenerate QRs if scan hints changed.', 'success');
+      // refresh records
+      missionRecords = missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+    } else { showToast(d.error||'Save failed', 'error'); setSaveStatus('error', 'Save failed'); }
+  } catch(e) { showToast('Network error', 'error'); setSaveStatus('error', 'Network error'); }
+}
+
+document.addEventListener('keydown', function(e){
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveAll(); }
+});
+
+// Init
+updateThemeButtons();
+switchTeam('red');
+</script>
+</body>
+</html>

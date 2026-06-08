@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{ mission.title }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  :root {
+    --bg-deep:#010102; --bg-page:#08090a; --bg-panel:#0f1011; --bg-surface:#191a1b; --bg-hover:#28282c;
+    --text-primary:#f7f8f8; --text-secondary:#d0d6e0; --text-muted:#8a8f98; --text-faint:#62666d;
+    --border-subtle:rgba(255,255,255,0.05); --border-standard:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.12);
+    --accent:#5e6ad2; --accent-hover:#828fff; --accent-bright:#7170ff;
+    --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
+    --gold:#ffd166; --gold-bg:rgba(255,209,102,0.08); --gold-glow:rgba(255,209,102,0.20);
+    --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10);
+    --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:var(--bg-page); color:var(--text-primary); min-height:100dvh;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center; padding:12px;
+  }
+  .glass-card {
+    width:100%; max-width:520px; background:var(--bg-panel); border:1px solid var(--border-standard);
+    border-radius:var(--radius-xl); padding:28px 24px; margin-top:16px;
+    box-shadow:var(--shadow-lg); animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  .mission-num { font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:600; color:var(--text-faint); margin-bottom:6px; }
+  h1 { font-size:24px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; line-height:1.25; }
+  .location { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+  .task-image { width:100%; border-radius:var(--radius-lg); margin:12px 0; border:1px solid var(--border-standard); max-height:320px; object-fit:cover; }
+  .task-box { background:var(--bg-deep); border:1px solid var(--border-standard); border-radius:var(--radius-md); padding:16px; margin:12px 0; font-size:14px; line-height:1.65; text-align:left; color:var(--text-secondary); }
+  .task-box strong { color:var(--gold); }
+
+  /* Photo upload */
+  .photo-upload { margin:14px 0; padding:20px; border:1.5px dashed rgba(255,107,107,0.3); border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:all .2s; background:var(--bg-deep); }
+  .photo-upload.missing { background:var(--red-bg); border-color:var(--red); }
+  .photo-upload.has-photo { border-style:solid; border-color:var(--green); background:var(--green-bg); }
+  .photo-upload .required-tag { font-size:10px; color:var(--red); font-weight:600; letter-spacing:1px; margin-bottom:6px; display:block; text-transform:uppercase; }
+  .photo-upload .label { font-size:14px; color:var(--text-muted); font-weight:500; }
+  .photo-upload .sub-label { font-size:12px; color:var(--text-faint); margin-top:4px; }
+  .photo-upload input { display:none; }
+  .photo-preview { max-width:100%; border-radius:var(--radius-md); margin-top:10px; display:none; }
+
+  .timing-banner { background:var(--gold-bg); border:1px solid rgba(255,209,102,0.15); border-radius:var(--radius-md); padding:12px 16px; margin:12px 0; font-size:13px; color:var(--text-secondary); text-align:left; }
+  .timing-banner strong { color:var(--gold); }
+
+  .btn { display:block; width:100%; padding:12px; border-radius:var(--radius-md); border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; }
+  .btn-primary { background:var(--green); color:#0f1011; box-shadow:0 2px 10px var(--green-glow); }
+  .btn-primary:hover { background:#34d399; transform:translateY(-1px); }
+  .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-ghost { background:transparent; border:1px solid var(--border-standard); color:var(--text-muted); margin-top:10px; font-size:13px; padding:10px; text-decoration:none; }
+  .btn-ghost:hover { border-color:var(--border-hover); color:var(--text-secondary); background:rgba(255,255,255,0.03); }
+
+  .next-hint { background:var(--gold-bg); border:1.5px solid rgba(255,209,102,0.25); border-radius:var(--radius-lg); padding:16px; font-size:14px; color:var(--text-secondary); margin:14px 0; text-align:left; line-height:1.6; }
+  .next-hint .label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .next-hint .label::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold-glow); }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-surface); border:1px solid var(--border-standard); border-radius:var(--radius-lg); padding:14px 24px; font-size:14px; box-shadow:var(--shadow-lg); z-index:100; display:none; text-align:center; max-width:90vw; font-weight:500; color:var(--text-secondary); }
+  .toast.success { border-color:var(--green); color:var(--green); display:block; }
+  .toast.error { border-color:var(--red); color:var(--red); display:block; }
+
+  .winner-banner { display:none; background:linear-gradient(135deg, rgba(16,185,129,0.10), rgba(255,209,102,0.05)); border:1px solid rgba(16,185,129,0.25); border-radius:var(--radius-xl); padding:28px 24px; margin-top:16px; text-align:center; }
+  .winner-banner .icon { font-size:52px; display:block; margin-bottom:8px; }
+  .winner-banner h2 { font-size:22px; font-weight:700; color:var(--green); letter-spacing:-0.3px; }
+</style>
+</head>
+<body>
+
+<div class="glass-card">
+  <div class="mission-num">Mission {{ mission.id }} - {{ 'PINK' if color == 'red' else (color|upper) }} Team</div>
+  <h1>{{ mission.title }}</h1>
+  <div class="location">{{ mission.location }}</div>
+
+  {% if mission.task_image %}
+  <img class="task-image" src="{{ mission.task_image }}" alt="Task image" id="task-img">
+  {% endif %}
+
+  <div class="task-box">
+    <strong>Your Task:</strong><br>
+    {{ mission.task }}
+  </div>
+
+  <div class="timing-banner">
+    <strong>Speed Bonus:</strong> Under 5 min = +{{ timer_bonus_fast }} pts / Under 10 min = +{{ timer_bonus_medium }} pts / No stranger help allowed / Photo proof required
+  </div>
+
+  <div class="photo-upload" id="photo-upload-box" onclick="document.getElementById('photo-input').click()">
+    <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto(this)">
+    <span class="required-tag">* Required *</span>
+    <div class="label">Take a photo as proof</div>
+    <div class="sub-label">Photo proof is mandatory. No photo = no points.</div>
+    <img class="photo-preview" id="photo-preview" src="" alt="">
+  </div>
+
+  <button class="btn btn-primary" id="complete-btn" onclick="markComplete()">Mark Mission Complete +{{ base_points }} pts</button>
+  <a href="/" class="btn btn-ghost">Back to Hunt</a>
+
+  <div class="next-hint" id="next-hint">
+    <div class="label">Next Destination</div>
+    {{ next_hint or 'Congratulations! You have completed all missions.' }}
+  </div>
+
+  {% if is_last %}
+  <div class="winner-banner" id="winner-banner">
+    <span class="icon">&#127942;</span>
+    <h2>You finished all {{ 'PINK' if color == 'red' else (color|upper) }} missions!</h2>
+  </div>
+  {% endif %}
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+var MISSION_ID = {{ mission.id }};
+var MISSION_COLOR = "{{ color }}";
+var BASE_POINTS = {{ base_points }};
+var TEAM_KEY = 'klaudusia_team';
+var IS_LAST = {{ 'true' if is_last else 'false' }};
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type;
+  setTimeout(function(){ t.className = 'toast'; }, 4000);
+}
+
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.getElementById('photo-preview');
+      var box = document.getElementById('photo-upload-box');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      box.classList.add('has-photo');
+      box.querySelector('.label').textContent = 'Photo taken!';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function markComplete() {
+  var team = localStorage.getItem(TEAM_KEY);
+  if (!team) {
+    showToast('Join the hunt first! Go Back to Hunt and pick a team.', 'error');
+    return;
+  }
+
+  var photoInput = document.getElementById('photo-input');
+  if (photoInput.files.length === 0) {
+    showToast('Photo proof is REQUIRED. Take a photo first!', 'error');
+    var box = document.getElementById('photo-upload-box');
+    box.classList.add('missing');
+    setTimeout(function(){ box.classList.remove('missing'); }, 2000);
+    return;
+  }
+
+  var btn = document.getElementById('complete-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  var f = new FormData();
+  f.append('team', team);
+  f.append('mission_id', MISSION_ID);
+  f.append('photo', photoInput.files[0]);
+
+  try {
+    var r = await fetch('/api/submit', {method:'POST', body:f});
+    var d = await r.json();
+    if (d.correct) {
+      var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
+      showToast('Mission complete! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      btn.textContent = 'Done! +' + d.earned + ' pts';
+      btn.style.background = 'rgba(110,231,183,0.15)';
+      btn.style.color = '#6ee7b7';
+
+      var hintBox = document.getElementById('next-hint');
+      if (hintBox) { hintBox.style.borderColor = 'var(--green)'; hintBox.querySelector('.label').textContent = 'Next Destination'; }
+
+      if (IS_LAST) {
+        var wb = document.getElementById('winner-banner');
+        if (wb) wb.style.display = 'block';
+      }
+      setTimeout(function(){ window.location.href = '/'; }, 2500);
+    } else {
+      btn.disabled = false; btn.textContent = 'Mark Mission Complete +' + BASE_POINTS + ' pts';
+      showToast(d.error || 'Something went wrong.', 'error');
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Mark Mission Complete +' + BASE_POINTS + ' pts';
+    showToast('Network error. Try again.', 'error');
+  }
+}
+</script>
+
+</body>
+</html>

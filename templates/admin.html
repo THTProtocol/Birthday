@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  :root {
+    --bg-deep:#010102; --bg-page:#08090a; --bg-panel:#0f1011; --bg-surface:#191a1b; --bg-hover:#28282c;
+    --text-primary:#f7f8f8; --text-secondary:#d0d6e0; --text-muted:#8a8f98; --text-faint:#62666d;
+    --border-subtle:rgba(255,255,255,0.05); --border-standard:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.12);
+    --accent:#5e6ad2; --accent-hover:#828fff; --accent-bright:#7170ff;
+    --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
+    --gold:#ffd166; --gold-bg:rgba(255,209,102,0.08); --gold-glow:rgba(255,209,102,0.20);
+    --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10);
+    --purple:#c084fc; --purple-bg:rgba(192,132,252,0.10);
+    --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:var(--bg-page); color:var(--text-primary); padding:20px;
+    max-width:960px; margin:0 auto; -webkit-font-smoothing:antialiased;
+  }
+
+  .header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; flex-wrap:wrap; gap:12px; }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-0.8px; }
+  .subtitle { color:var(--text-muted); font-size:13px; margin-bottom:20px; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:12px; margin-bottom:20px; }
+  .card {
+    background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl);
+    padding:20px; text-align:center; box-shadow:var(--shadow-md);
+    transition:border-color .2s;
+  }
+  .card:hover { border-color:var(--border-hover); }
+  .card .big { font-size:32px; font-weight:700; color:var(--accent); display:block; }
+  .card .label { font-size:12px; color:var(--text-muted); margin-top:4px; font-weight:500; }
+
+  .section { background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:22px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
+  .section h2 { font-size:16px; font-weight:600; margin-bottom:16px; letter-spacing:-0.3px; }
+
+  .score-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .score-item {
+    flex:1; min-width:140px; padding:16px; border-radius:var(--radius-lg);
+    background:var(--bg-deep); border:1px solid var(--border-standard); text-align:center;
+    transition:border-color .2s;
+  }
+  .score-item:hover { border-color:var(--border-hover); }
+  .score-item .pts { font-size:28px; font-weight:700; display:block; }
+  .score-item .name { font-size:13px; color:var(--text-muted); margin-top:4px; word-break:break-word; font-weight:500; }
+  .score-item .detail { font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 6px; color:var(--text-faint); font-weight:500; font-size:10px; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border-standard); }
+  td { padding:10px 6px; border-bottom:1px solid var(--border-subtle); }
+  td .team-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; background:var(--green-bg); color:var(--green); }
+  .badge-skipped { background:var(--gold-bg); color:var(--gold); padding:2px 8px; border-radius:999px; font-size:11px; font-weight:500; }
+  .badge-blocked { background:var(--red-bg); color:var(--red); padding:2px 8px; border-radius:999px; font-size:11px; font-weight:500; }
+  .badge-bonus { background:var(--purple-bg); color:var(--purple); padding:2px 8px; border-radius:999px; font-size:11px; font-weight:500; }
+
+  .btn {
+    padding:10px 20px; border-radius:var(--radius-md); border:none;
+    font-size:13px; font-weight:600; cursor:pointer; transition:all .15s;
+    text-decoration:none; display:inline-block;
+  }
+  .btn-green { background:var(--green); color:#0f1011; box-shadow:0 2px 8px var(--green-glow); }
+  .btn-green:hover { background:#34d399; transform:translateY(-1px); }
+  .btn-red { background:var(--red); color:#fff; }
+  .btn-red:hover { background:#ff8585; }
+  .btn-purple { background:var(--purple); color:#fff; }
+  .btn-purple:hover { background:#a78bfa; }
+  .btn-ghost { background:var(--bg-deep); border:1px solid var(--border-standard); color:var(--text-secondary); }
+  .btn-ghost:hover { border-color:var(--border-hover); color:var(--text-primary); background:rgba(255,255,255,0.03); }
+  .btn-sm { padding:6px 14px; font-size:11px; }
+  .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+
+  .bonus-row { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .bonus-row select, .bonus-row input {
+    padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--border-standard);
+    background:var(--bg-deep); color:var(--text-primary); font-size:13px;
+  }
+  .bonus-row input { width:60px; text-align:center; }
+
+  .photo-thumb { max-width:70px; max-height:44px; border-radius:var(--radius-sm); cursor:pointer; border:1px solid var(--border-standard); }
+  .lightbox { display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999; justify-content:center; align-items:center; }
+  .lightbox img { max-width:90vw; max-height:90vh; border-radius:var(--radius-md); }
+  .lightbox.active { display:flex; }
+
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--bg-surface); border:1px solid var(--border-standard); border-radius:var(--radius-lg);
+    padding:14px 24px; font-size:14px; box-shadow:var(--shadow-lg); z-index:100; display:none;
+    text-align:center; max-width:90vw; font-weight:500; color:var(--text-secondary);
+  }
+  .toast.success { border-color:var(--green); color:var(--green); display:block; }
+  .toast.error { border-color:var(--red); color:var(--red); display:block; }
+  .toast.purple { border-color:var(--purple); color:var(--purple); display:block; }
+
+  .empty { text-align:center; color:var(--text-faint); padding:30px; font-size:14px; }
+
+  .bonus-card-select { padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--purple); background:var(--purple-bg); color:var(--purple); font-size:13px; }
+  .bonus-card-row { display:flex; gap:8px; align-items:center; margin:6px 0; padding:8px; border-radius:var(--radius-md); background:var(--bg-deep); border:1px solid var(--border-standard); }
+  .bonus-card-row .name { font-weight:600; color:var(--purple); flex:1; }
+  .bonus-card-row .desc { font-size:12px; color:var(--text-muted); }
+
+  .states-grid { display:grid; gap:8px; }
+  .state-row {
+    display:flex; gap:10px; align-items:center; padding:10px 14px;
+    border-radius:var(--radius-md); background:var(--bg-deep); border:1px solid var(--border-standard);
+    flex-wrap:wrap;
+  }
+  .state-row .team-name { font-weight:600; min-width:100px; font-size:13px; }
+  .state-row .status { font-size:12px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="header-row">
+  <div>
+    <h1>Admin</h1>
+    <p class="subtitle">Live gamemaster dashboard - Bonus Cards & Timing Bonuses</p>
+  </div>
+  <div class="btn-group">
+    <a href="/editor" class="btn btn-ghost btn-sm">Editor</a>
+    <a href="/" class="btn btn-ghost btn-sm">Players</a>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card"><span class="big" id="team-count">0</span><span class="label">Teams joined</span></div>
+  <div class="card"><span class="big" id="total-subs">0</span><span class="label">Submissions</span></div>
+  <div class="card"><span class="big" id="status-badge"></span><span class="label" id="status-text">Not started</span></div>
+</div>
+
+<div class="section">
+  <h2>Scoreboard</h2>
+  <div class="score-row" id="score-row"></div>
+  <div class="btn-group" style="margin-top:10px;">
+    <button class="btn btn-green" id="start-btn" onclick="adminAction('start')">Start Hunt</button>
+    <button class="btn btn-red" onclick="if(confirm('COMPLETELY reset all teams, scores, and uploads?')) adminAction('reset')">Reset Everything</button>
+  </div>
+  <div style="margin-top:14px;font-size:13px;">
+    <strong>Bonus points:</strong>
+    <div class="bonus-row">
+      <select id="bonus-team"><option>-</option></select>
+      <input type="number" id="bonus-pts" value="5" min="-50" max="50">
+      <button class="btn btn-sm btn-ghost" onclick="giveBonus()">Add Bonus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bonus Card Panel -->
+<div class="section">
+  <h2>Bonus Card Deck</h2>
+  <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+    Offer a bonus card to a team. They must accept or ignore (once accepted, it must be executed).
+  </p>
+
+  <div class="bonus-card-row">
+    <span class="name">DOUBLE STRIKE</span>
+    <span class="desc">Next task yields double points</span>
+  </div>
+  <div class="bonus-card-row">
+    <span class="name">FAST TRACK</span>
+    <span class="desc">Skip next task for free (0 pts, no penalty)</span>
+  </div>
+  <div class="bonus-card-row">
+    <span class="name">TIME BREAK</span>
+    <span class="desc">150 pushups before continuing. Team self-verifies.</span>
+  </div>
+  <div class="bonus-card-row">
+    <span class="name">STEAL POINTS</span>
+    <span class="desc">Steal 10 pts from the opposing team immediately</span>
+  </div>
+  <div class="bonus-card-row">
+    <span class="name">TIME TAX</span>
+    <span class="desc">5-minute mandatory wait before next move</span>
+  </div>
+
+  <div style="margin-top:14px; border-top:1px solid var(--border-standard); padding-top:14px;">
+    <strong style="font-size:13px;">Offer Bonus Card:</strong>
+    <div class="bonus-row" style="margin-top:8px;">
+      <select id="offer-team"><option>Select team...</option></select>
+      <select id="offer-card" class="bonus-card-select">
+        <option value="double_strike">DOUBLE STRIKE</option>
+        <option value="fast_track">FAST TRACK</option>
+        <option value="time_break">TIME BREAK</option>
+        <option value="steal_points">STEAL POINTS</option>
+        <option value="time_tax">TIME TAX</option>
+      </select>
+      <button class="btn btn-sm btn-purple" onclick="offerBonusCard()">Offer Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- Team State / Active Bonuses -->
+<div class="section">
+  <h2>Team Active States</h2>
+  <div id="team-states" class="states-grid">
+    <div class="empty">No teams yet.</div>
+  </div>
+</div>
+
+<!-- Activity Feed -->
+<div class="section">
+  <h2>Activity Feed</h2>
+  <table id="feed-table"><tbody id="feed-tbody"></tbody></table>
+  <div class="empty" id="no-activity">No activity yet.</div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('active')"><img id="lightbox-img" src=""></div>
+
+<script>
+const ADMIN_PW = localStorage.getItem('admin_pw') || '';
+if (!ADMIN_PW) {
+  var pw = prompt('Enter admin password:');
+  if (pw) { localStorage.setItem('admin_pw', pw); location.reload(); }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function openPhoto(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('active');
+}
+
+async function loadState() {
+  try {
+    const r = await fetch('/api/admin/state?password=' + ADMIN_PW);
+    const s = await r.json();
+    if (s.error) { showToast(s.error, 'error'); return; }
+
+    const teams = s.teams || {};
+    const teamNames = Object.keys(teams);
+
+    document.getElementById('team-count').textContent = teamNames.length;
+    document.getElementById('status-badge').textContent = s.started ? '' : '';
+    document.getElementById('status-text').textContent = s.started ? 'Live' : 'Not started';
+    document.getElementById('start-btn').textContent = s.started ? 'Restart Hunt' : 'Start Hunt';
+
+    // Score row
+    const scoreRow = document.getElementById('score-row');
+    const sorted = teamNames.sort((a,b) => (teams[b].score||0) - (teams[a].score||0));
+    if (sorted.length === 0) {
+      scoreRow.innerHTML = '<div class="score-item"><span class="pts" style="color:var(--text-muted)">-</span><span class="name">No teams yet</span></div>';
+    } else {
+      scoreRow.innerHTML = sorted.map((name, idx) => {
+        const t = teams[name];
+        const color = idx === 0 ? 'var(--accent)' : 'var(--accent2)';
+        const medal = idx === 0 ? '' : idx === 1 ? '' : '';
+        return `<div class="score-item">
+          <span class="pts" style="color:${color}">${t.score||0}</span>
+          <span class="name">${medal} ${escHtml(name)}</span>
+          <span class="detail">${t.completed ? Object.keys(t.completed).length : 0} done · ${t.skipped ? Object.keys(t.skipped).length : 0} skipped · Mission ${t.current_mission || 'done'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Bonus dropdowns
+    const bonusSel = document.getElementById('bonus-team');
+    bonusSel.innerHTML = '<option>-</option>' + sorted.map(n => `<option>${escHtml(n)}</option>`).join('');
+
+    const offerSel = document.getElementById('offer-team');
+    offerSel.innerHTML = '<option>Select team...</option>' + sorted.map(n => `<option>${escHtml(n)}</option>`).join('');
+
+    // Team states
+    const statesGrid = document.getElementById('team-states');
+    if (sorted.length === 0) {
+      statesGrid.innerHTML = '<div class="empty">No teams yet.</div>';
+    } else {
+      statesGrid.innerHTML = sorted.map(name => {
+        const t = teams[name];
+        let status = '';
+        let actions = '';
+
+        if (t.blocked_until) {
+          status = `<span class="badge-blocked">BLOCKED</span> ${t.active_cooldown || 'Cooldown'} until ${new Date(t.blocked_until).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}`;
+          actions = `<button class="btn btn-sm btn-red" onclick="clearBlock('${escJs(name)}')">Clear Block</button>`;
+        } else if (t.active_bonus) {
+          status = `<span class="badge-bonus">${t.active_bonus.name || 'BONUS ACTIVE'}</span>`;
+          actions = `<button class="btn btn-sm btn-ghost" onclick="clearBlock('${escJs(name)}')">Clear</button>`;
+        } else if (t.bonus_offer) {
+          status = `<span class="badge-bonus">OFFERED: ${t.bonus_offer.name}</span>`;
+          actions = `<button class="btn btn-sm btn-ghost" onclick="cancelOffer('${escJs(name)}')">Cancel</button>`;
+        } else {
+          status = `<span class="team-badge">Active</span>`;
+        }
+
+        return `<div class="state-row">
+          <span class="team-name">${escHtml(name)} (${t.color === 'red' ? 'pink' : t.color||'red'})</span>
+          <span class="status">${status}</span>
+          ${actions}
+        </div>`;
+      }).join('');
+    }
+
+    // Activity feed
+    const tbody = document.getElementById('feed-tbody');
+    const noAct = document.getElementById('no-activity');
+    tbody.innerHTML = '';
+
+    let events = [];
+    for (const [name, t] of Object.entries(teams)) {
+      if (t.completed) {
+        for (const [mid, sub] of Object.entries(t.completed)) {
+          events.push({
+            team: name, mission: mid, type: 'completed',
+            timestamp: sub.timestamp, photo: sub.photo_url,
+            points: sub.points || BASE_POINTS,
+            timing_bonus: sub.timing_bonus || 0,
+            multiplier: sub.multiplier || 1,
+          });
+        }
+      }
+      if (t.skipped) {
+        for (const [mid, sk] of Object.entries(t.skipped)) {
+          events.push({
+            team: name, mission: mid, type: 'skipped',
+            timestamp: sk.timestamp, points: sk.free_skip ? 0 : -(sk.penalty || 0),
+            free_skip: sk.free_skip
+          });
+        }
+      }
+    }
+    events.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (events.length === 0) {
+      noAct.style.display = 'block';
+      document.getElementById('feed-table').style.display = 'none';
+    } else {
+      noAct.style.display = 'none';
+      document.getElementById('feed-table').style.display = '';
+      events.forEach(e => {
+        const time = new Date(e.timestamp).toLocaleTimeString('da-DK', {hour:'2-digit',minute:'2-digit'});
+        const typeBadge = e.type === 'skipped'
+          ? (e.free_skip ? '<span class="badge-blocked">FAST TRACK SKIP</span>' : '<span class="badge-skipped">Skipped</span>')
+          : '<span style="color:var(--accent);">✓ Completed</span>';
+        const photoCell = e.photo ? `<img src="${e.photo}" class="photo-thumb" onclick="openPhoto('${e.photo}')" alt="proof">` : '-';
+        let ptsStr = e.points > 0 ? '+' + e.points : '' + e.points;
+        if (e.multiplier && e.multiplier > 1) ptsStr += ` (x${e.multiplier})`;
+        if (e.timing_bonus) ptsStr += ` (+${e.timing_bonus} speed)`;
+        const ptsColor = e.points >=0 ? 'var(--accent)' : 'var(--danger)';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="font-size:11px;color:var(--text-muted)">${time}</td>
+          <td><span class="team-badge">${escHtml(e.team)}</span></td>
+          <td>${typeBadge} #${e.mission}</td>
+          <td>${photoCell}</td>
+          <td style="font-weight:600;color:${ptsColor}">${ptsStr}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('total-subs').textContent = events.length;
+
+  } catch(e) { console.error(e); }
+}
+
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function escJs(s) { return s.replace(/'/g, "\\'"); }
+
+async function adminAction(action) {
+  const f = new FormData(); f.append('password', ADMIN_PW);
+  const r = await fetch('/api/admin/' + action, { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast(action==='start'?'Hunt started!':'Game reset','success'); loadState(); }
+}
+
+async function giveBonus() {
+  const team = document.getElementById('bonus-team').value;
+  const pts = parseInt(document.getElementById('bonus-pts').value);
+  if (team === '-' || isNaN(pts)) return showToast('Select team and points', 'error');
+  const f = new FormData(); f.append('password', ADMIN_PW); f.append('team', team); f.append('points', pts);
+  const r = await fetch('/api/admin/bonus', { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast(`${pts>0?'+':''}${pts} to ${team}`, 'success'); loadState(); }
+}
+
+async function offerBonusCard() {
+  const team = document.getElementById('offer-team').value;
+  const card = document.getElementById('offer-card').value;
+  if (!team || team === 'Select team...') return showToast('Select a team', 'error');
+  const f = new FormData();
+  f.append('password', ADMIN_PW);
+  f.append('team', team);
+  f.append('card', card);
+  const r = await fetch('/api/bonus/offer', { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast('Offered ' + card + ' to ' + team, 'purple'); loadState(); }
+  else { showToast(d.error, 'error'); }
+}
+
+async function clearBlock(team) {
+  const f = new FormData();
+  f.append('password', ADMIN_PW);
+  f.append('team', team);
+  const r = await fetch('/api/admin/clear-block', { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast('Block cleared for ' + team, 'success'); loadState(); }
+}
+
+async function cancelOffer(team) {
+  const f = new FormData();
+  f.append('password', ADMIN_PW);
+  f.append('team', team);
+  const r = await fetch('/api/bonus/cancel', { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast('Offer cancelled for ' + team, 'success'); loadState(); }
+}
+
+setInterval(loadState, 4000);
+loadState();
+</script>
+
+</body>
+</html>

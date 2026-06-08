@@ -1,0 +1,152 @@
+======================================================================
+ RINGPARKEN HUNT — DEPLOYMENT & RUN GUIDE
+======================================================================
+
+YOU HAVE TWO OPTIONS TO RUN THIS:
+
+╔══════════════════════════════════════════════════════════════════╗
+║ OPTION 1: LOCAL WIFI (simplest)                ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ Everyone is together in before the hunt starts.
+ Your phone becomes the server.
+
+ STEPS:
+ 1. Connect your phone to the same Wi-Fi as the laptop
+   (or create a mobile hotspot from your phone, connect
+   the laptop to it).
+
+ 2. Find your laptop's local IP:
+    $ hostname -I | awk '{print $1}'
+   (Example: 192.168.1.42)
+
+ 3. Regenerate QR codes with that IP:
+    $ cd /home/kasparov/ringparken-hunt-v2
+    $ python3 generate_qr.py http://192.168.1.42:8080
+
+ 4. Start the server:
+    $ python3 server.py
+
+ 5. Print the new QR codes from qr-codes-v2/ folder.
+
+ 6. Everyone scans the QR codes with their phone.
+   As long as they're on the same Wi-Fi/hotspot,
+   the mission pages will load instantly.
+
+ 7. Open the admin dashboard on your phone/laptop:
+    http://192.168.1.42:8080/admin
+
+ PROS: Zero setup cost, instant, works anywhere
+ CONS: You need a laptop running the whole time
+
+╔══════════════════════════════════════════════════════════════════╗
+║ OPTION 2: DEPLOY TO RENDER (free, 24/7)            ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ Free tier. No credit card needed. Runs 24/7 for the event.
+
+ STEPS:
+ 1. Go to https://render.com and sign up (GitHub login works)
+
+ 2. Click "New +" → "Web Service"
+
+ 3. Connect your GitHub repo (upload ringparken-hunt-v2 to a repo)
+   OR use "Deploy from Git" with any public repo
+
+ 4. Settings:
+   - Name: ringparken-hunt
+   - Runtime: Python 3
+   - Build Command: pip install flask
+   - Start Command: python3 server.py
+   - Free Instance Type: Yes
+
+ 5. Set environment variable:
+   ADMIN_PASSWORD = something-secret
+
+ 6. Click "Deploy Web Service"
+
+ 7. After deployment, Render gives you a URL like:
+   https://ringparken-hunt.onrender.com
+
+ 8. Regenerate QR codes with that URL:
+   $ cd /home/kasparov/ringparken-hunt-v2
+   $ python3 generate_qr.py https://ringparken-hunt.onrender.com
+
+ 9. Print the QR codes and hide them in Ringparken.
+
+ NOTE: Render free tier spins down after 15 min of inactivity.
+ It takes ~30 sec to wake up on first visit. Tell players to
+ scan the homepage QR first (it wakes up the server).
+
+╔══════════════════════════════════════════════════════════════════╗
+║ OPTION 3: NGROK (quick tunnel, no deployment)         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ Free. Tunnels your localhost to a public URL.
+
+ STEPS:
+ 1. Install ngrok: https://ngrok.com/download
+ 2. Start server: python3 server.py
+ 3. In another terminal: ngrok http 8080
+ 4. Ngrok gives you a URL like: https://abc123.ngrok.io
+ 5. Regenerate QR codes with that URL:
+   $ python3 generate_qr.py https://abc123.ngrok.io
+ 6. Print QR codes, hide them.
+
+ PROS: Your laptop runs it, public internet access
+ CONS: URL changes each time ngrok restarts.
+    Ngrok free tier has a time limit.
+
+======================================================================
+ IMPORTANT: REGENERATE QR CODES FOR YOUR FINAL URL
+======================================================================
+
+ The qr-codes-v2/ folder contains QR codes pointing to
+ localhost:8080. You MUST regenerate them with your actual
+ public URL before printing:
+
+  $ cd /home/kasparov/ringparken-hunt-v2
+  $ python3 generate_qr.py YOUR_ACTUAL_URL
+
+ Example:
+  $ python3 generate_qr.py https://ringparken-hunt.onrender.com
+
+ This overwrites qr-codes-v2/ with the correct URLs.
+
+======================================================================
+ DAY-OF CHECKLIST
+======================================================================
+
+ [ ] Server is running and accessible from a phone browser
+ [ ] QR codes printed (14 total: 10 missions + 4 decoys)
+ [ ] QR codes are weather-protected (laminate/bag)
+ [ ] Admin dashboard accessible (/admin)
+ [ ] Test: scan Mission 1 QR with a phone → mission page loads
+ [ ] WhatsApp group created with both teams
+ [ ] Admin password known
+ [ ] Cake hidden at Mission 10 finale location
+ [ ] SCORING_SHEET.txt printed (backup manual scoring)
+ [ ] GAMEMASTER_GUIDE.txt on your phone for hiding locations
+
+======================================================================
+ FILES OVERVIEW
+======================================================================
+
+ ringparken-hunt-v2/
+ ├── server.py         Flask backend
+ ├── missions.json       Mission data
+ ├── generate_qr.py      QR code generator
+ ├── state.json        Game state (auto-created)
+ ├── uploads/         Team photo uploads
+ ├── qr-codes-v2/       14 QR PNGs (regenerate with your URL)
+ ├── templates/
+ │  ├── index.html      Team landing page
+ │  ├── mission.html     Single mission view
+ │  └── admin.html      Gamemaster dashboard
+ └── static/
+   ├── decoy1.html      Decoy troll pages
+   ├── decoy2.html
+   ├── decoy3.html
+   └── decoy4.html
+
+======================================================================

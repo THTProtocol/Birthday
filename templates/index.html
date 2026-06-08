@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Klaudusia's Birthday Hunt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  :root {
+    --bg-deep:#010102; --bg-page:#08090a; --bg-panel:#0f1011; --bg-surface:#191a1b; --bg-hover:#28282c;
+    --text-primary:#f7f8f8; --text-secondary:#d0d6e0; --text-muted:#8a8f98; --text-faint:#62666d;
+    --border-subtle:rgba(255,255,255,0.05); --border-standard:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.12);
+    --accent:#5e6ad2; --accent-hover:#828fff; --accent-bright:#7170ff;
+    --pink:#ff5da5; --pink-bg:rgba(255,93,165,0.10); --pink-glow:rgba(255,93,165,0.25);
+    --blue:#4da6ff; --blue-bg:rgba(77,166,255,0.10); --blue-glow:rgba(77,166,255,0.25);
+    --gold:#ffd166; --gold-bg:rgba(255,209,102,0.08); --gold-glow:rgba(255,209,102,0.20);
+    --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
+    --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10);
+    --purple:#c084fc; --purple-bg:rgba(192,132,252,0.10);
+    --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:var(--bg-page); color:var(--text-primary); min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; align-items:center; padding:12px;
+  }
+  .top-bar { width:100%; max-width:560px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px; }
+  .top-bar a { color:var(--text-faint); text-decoration:none; font-size:12px; font-weight:500; transition:color .15s; }
+  .top-bar a:hover { color:var(--text-muted); }
+  .score-pill { padding:4px 12px; border-radius:999px; font-weight:700; font-size:11px; letter-spacing:0.3px; background:var(--bg-surface); border:1px solid var(--border-standard); color:var(--text-muted); }
+  .score-pill.pink { background:var(--pink-bg); color:var(--pink); border-color:rgba(255,93,165,0.25); }
+  .score-pill.blue { background:var(--blue-bg); color:var(--blue); border-color:rgba(77,166,255,0.25); }
+  .score-pill.gold { background:var(--gold-bg); color:var(--gold); border-color:rgba(255,209,102,0.25); }
+  .glass-card, .step-card { width:100%; max-width:520px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:32px 28px; margin-bottom:12px; text-align:center; box-shadow:var(--shadow-lg); animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  .step-emoji { font-size:52px; line-height:1; margin-bottom:10px; }
+  .step-title { font-size:26px; font-weight:700; letter-spacing:-0.8px; margin-bottom:6px; color:var(--text-primary); }
+  .step-sub, .step-subtitle { font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.5; }
+  .field-label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-faint); margin-bottom:8px; text-align:center; }
+  .input-field { width:100%; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-standard); background:var(--bg-deep); color:var(--text-primary); font-size:15px; font-family:inherit; outline:none; text-align:center; transition:border-color .2s, box-shadow .2s; }
+  .input-field:focus { border-color:var(--accent-bright); box-shadow:0 0 0 3px rgba(113,112,255,0.10); }
+  .input-field::placeholder { color:var(--text-faint); }
+  .btn { display:block; width:100%; padding:12px; border-radius:var(--radius-md); border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; }
+  .btn:disabled { opacity:.35; cursor:not-allowed; }
+  .btn-primary { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(94,106,210,0.30); }
+  .btn-primary:hover:not(:disabled) { background:var(--accent-hover); transform:translateY(-1px); box-shadow:0 4px 14px rgba(94,106,210,0.35); }
+  .btn-ghost { background:transparent; border:1px solid var(--border-standard); color:var(--text-muted); margin-top:10px; font-size:13px; padding:10px; }
+  .btn-ghost:hover:not(:disabled) { border-color:var(--border-hover); color:var(--text-secondary); background:rgba(255,255,255,0.03); }
+  .btn-back { display:inline-flex; align-items:center; gap:6px; width:auto; padding:8px 14px; font-size:12px; margin-top:0; }
+  .btn-pink { background:var(--pink); color:#fff; box-shadow:0 2px 10px var(--pink-glow); }
+  .btn-pink:hover:not(:disabled) { background:#ff6eb5; transform:translateY(-1px); }
+  .btn-blue { background:var(--blue); color:#fff; box-shadow:0 2px 10px var(--blue-glow); }
+  .btn-blue:hover:not(:disabled) { background:#5cb0ff; transform:translateY(-1px); }
+  .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+  .choice-btn { padding:24px 14px; border-radius:var(--radius-lg); border:1px solid var(--border-standard); background:var(--bg-deep); color:var(--text-primary); cursor:pointer; transition:all .2s; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .choice-btn:hover { border-color:var(--accent-bright); background:var(--bg-surface); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .choice-btn .icon { font-size:28px; }
+  .choice-btn .label { font-size:14px; font-weight:600; }
+  .choice-btn .hint { font-size:11px; color:var(--text-faint); font-weight:400; line-height:1.4; }
+  .color-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px; }
+  .color-card { padding:20px 10px; border-radius:var(--radius-lg); border:1px solid var(--border-standard); text-align:center; cursor:pointer; transition:all .25s ease; font-size:14px; font-weight:600; background:var(--bg-deep); display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .color-card .dot { font-size:22px; }
+  .color-card.pink { color:var(--pink); }
+  .color-card.blue { color:var(--blue); }
+  .color-card.selected { border-width:2px; background:var(--bg-surface); transform:scale(1.02); }
+  .color-card.selected.pink { border-color:var(--pink); box-shadow:0 0 20px var(--pink-glow); }
+  .color-card.selected.blue { border-color:var(--blue); box-shadow:0 0 20px var(--blue-glow); }
+  .color-card.disabled { opacity:.2; cursor:not-allowed; pointer-events:none; }
+  .team-list { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+  .team-list-item { padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-standard); background:var(--bg-deep); cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:space-between; }
+  .team-list-item:hover { border-color:var(--accent-bright); background:var(--bg-surface); transform:translateY(-1px); }
+  .team-list-item .info { display:flex; align-items:center; gap:10px; }
+  .team-list-item .dot { width:8px; height:8px; border-radius:50%; }
+  .team-list-item .dot.pink { background:var(--pink); box-shadow:0 0 6px var(--pink-glow); }
+  .team-list-item .dot.blue { background:var(--blue); box-shadow:0 0 6px var(--blue-glow); }
+  .team-list-item .name { font-weight:600; font-size:14px; }
+  .team-list-item .count { font-size:12px; color:var(--text-faint); }
+  .team-list-item .badge { font-size:11px; font-weight:500; padding:3px 10px; border-radius:999px; background:var(--bg-surface); color:var(--text-faint); border:1px solid var(--border-standard); }
+  .team-list-item:hover .badge { background:var(--gold-bg); color:var(--gold); border-color:rgba(255,209,102,0.2); }
+  .rules-mini { font-size:11px; color:var(--text-faint); text-align:center; margin-top:18px; line-height:1.6; }
+  .rules-mini span { color:var(--gold); font-weight:500; }
+  .error-msg { font-size:13px; color:var(--red); text-align:center; margin-top:8px; min-height:20px; }
+  .hunt-card { width:100%; max-width:540px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:22px 20px; margin-bottom:10px; box-shadow:var(--shadow-md); transition:border-color .2s; }
+  .hunt-card:hover { border-color:var(--border-hover); }
+  .section-title { font-size:10px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; }
+  .section-title .dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+  .dot.pink { background:var(--pink); }
+  .dot.blue { background:var(--blue); }
+  .dot.gold { background:var(--gold); }
+  .dot.green { background:var(--green); }
+  .dot.purple { background:var(--purple); }
+  .members-strip { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .member-tag { display:inline-flex; align-items:center; gap:6px; background:var(--bg-deep); border:1px solid var(--border-standard); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:500; color:var(--text-muted); transition:all .15s; }
+  .member-tag:hover { border-color:var(--border-hover); background:var(--bg-surface); }
+  .member-tag .crown { font-size:11px; color:var(--gold); }
+  .member-tag .you { font-size:10px; color:var(--text-faint); border:1px solid var(--border-standard); border-radius:4px; padding:1px 5px; }
+  .lb-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:var(--radius-md); background:var(--bg-deep); font-size:13px; margin-bottom:4px; border:1px solid var(--border-subtle); }
+  .lb-row.you { background:rgba(255,255,255,0.03); border-color:var(--border-standard); }
+  .lb-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; margin-right:8px; }
+  .lb-rank.gold { background:var(--gold-bg); color:var(--gold); }
+  .lb-rank.silver { background:rgba(255,255,255,0.06); color:var(--text-muted); }
+  .lb-name { flex:1; font-weight:500; display:flex; align-items:center; gap:6px; }
+  .lb-dot-sm { width:7px; height:7px; border-radius:50%; display:inline-block; }
+  .lb-dot-sm.pink-sm { background:var(--pink); }
+  .lb-dot-sm.blue-sm { background:var(--blue); }
+  .lb-pts { font-weight:700; font-size:13px; }
+  .lb-pts.pink { color:var(--pink); }
+  .lb-pts.blue { color:var(--blue); }
+  .lb-progress { width:100%; height:2px; background:var(--bg-surface); border-radius:1px; margin-top:6px; overflow:hidden; }
+  .lb-fill { height:100%; border-radius:1px; transition:width .5s ease; }
+  .lb-fill.pink { background:var(--pink); }
+  .lb-fill.blue { background:var(--blue); }
+  .current-mission { border-width:1.5px; }
+  .current-mission.pink { border-color:rgba(255,93,165,0.30); background:rgba(255,93,165,0.02); }
+  .current-mission.blue { border-color:rgba(77,166,255,0.30); background:rgba(77,166,255,0.02); }
+  .mission-num { font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:600; margin-bottom:4px; display:block; color:var(--text-faint); }
+  .mission-num.pink { color:var(--pink); }
+  .mission-num.blue { color:var(--blue); }
+  .mission-title { font-size:22px; font-weight:700; line-height:1.25; margin-bottom:6px; letter-spacing:-0.3px; }
+  .mission-loc { display:inline-block; font-size:12px; color:var(--gold); background:var(--gold-bg); padding:4px 10px; border-radius:999px; margin-bottom:14px; font-weight:500; }
+  .task-box { font-size:14px; line-height:1.65; color:var(--text-secondary); padding:16px; background:var(--bg-deep); border-radius:var(--radius-md); border-left:2px solid var(--gold); margin-bottom:12px; }
+  .scan-box { font-size:14px; color:var(--gold); padding:16px; background:var(--gold-bg); border:1.5px dashed rgba(255,209,102,0.20); border-radius:var(--radius-md); margin:12px 0; text-align:center; }
+  .scan-box .icon { font-size:24px; display:block; margin-bottom:4px; }
+  .scan-box .hint-text { color:rgba(255,209,102,0.55); font-size:12px; margin-top:4px; }
+  .timer-bar { background:var(--bg-deep); border:1px solid var(--border-standard); border-radius:var(--radius-md); padding:14px; margin:10px 0; text-align:center; }
+  .timer-bar .elapsed { font-size:28px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; letter-spacing:-1px; line-height:1; }
+  .timer-bar .timer-label { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; margin-top:4px; }
+  .timer-bar .timing-info { font-size:12px; color:var(--text-faint); margin-top:8px; }
+  .timer-bar .timing-info span { color:var(--green); font-weight:600; }
+  .hint-reveal { font-size:13px; line-height:1.5; color:var(--blue); padding:14px; background:var(--blue-bg); border:1px solid rgba(77,166,255,0.20); border-radius:var(--radius-md); margin:10px 0; display:none; }
+  .hint-reveal.show { display:block; }
+  .btn-skip { background:transparent; border:1.5px dashed rgba(255,209,102,0.25); color:var(--gold); margin-top:10px; font-size:14px; font-weight:500; }
+  .btn-skip:hover { background:var(--gold-bg); }
+  .btn-hint { background:transparent; border:1px dashed rgba(77,166,255,0.25); color:var(--blue); margin-top:8px; font-size:14px; font-weight:500; }
+  .btn-hint:hover { background:var(--blue-bg); }
+  .btn-hint:disabled { opacity:.3; pointer-events:none; }
+  .progress-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(40px,1fr)); gap:6px; }
+  .prog-chip { aspect-ratio:1; border-radius:var(--radius-md); border:1px solid var(--border-standard); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; background:var(--bg-deep); color:var(--text-faint); }
+  .prog-chip.done-pink { background:var(--pink-bg); border-color:rgba(255,93,165,0.25); color:var(--pink); }
+  .prog-chip.done-blue { background:var(--blue-bg); border-color:rgba(77,166,255,0.25); color:var(--blue); }
+  .prog-chip.current { animation:pulse 2.5s infinite; color:var(--gold); border-color:rgba(255,209,102,0.25); font-size:13px; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,0.15);} 50%{box-shadow:0 0 10px 3px rgba(255,209,102,0.08);} }
+  .bonus-offer { background:linear-gradient(135deg, rgba(192,132,252,0.08), rgba(255,209,102,0.04)); border:1px solid rgba(192,132,252,0.25); border-radius:var(--radius-xl); padding:20px; margin:10px 0; text-align:center; animation:cardPulse 2s ease-in-out infinite alternate; }
+  @keyframes cardPulse { from{box-shadow:0 0 0 0 rgba(192,132,252,0.10);} to{box-shadow:0 0 16px 4px rgba(192,132,252,0.08);} }
+  .bonus-offer .card-title { font-size:18px; font-weight:700; color:var(--purple); margin-bottom:4px; letter-spacing:-0.2px; }
+  .bonus-offer .card-desc { font-size:13px; color:var(--text-muted); margin-bottom:14px; }
+  .bonus-buttons { display:flex; gap:10px; }
+  .bonus-buttons .btn { flex:1; margin-top:0; }
+  .btn-accept { background:var(--green); color:#0f1011; font-weight:600; }
+  .btn-accept:hover { background:#34d399; }
+  .btn-decline { background:var(--red-bg); border:1px solid rgba(255,107,107,0.25); color:var(--red); }
+  .btn-decline:hover { background:rgba(255,107,107,0.15); }
+  .btn-pushup { background:var(--purple); color:#fff; }
+  .btn-pushup:hover { background:#a78bfa; }
+  .block-banner { background:linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border:1px solid rgba(255,107,107,0.20); border-radius:var(--radius-xl); padding:18px; margin:10px 0; text-align:center; }
+  .block-banner .block-title { font-size:15px; font-weight:700; color:var(--red); margin-bottom:6px; }
+  .block-banner .block-desc { font-size:13px; color:var(--text-muted); }
+  .block-banner .countdown { font-size:26px; font-weight:700; color:var(--red); margin:8px 0; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
+  .bonus-pill { display:inline-flex; align-items:center; gap:6px; background:var(--purple-bg); color:var(--purple); border:1px solid rgba(192,132,252,0.20); border-radius:999px; padding:3px 10px; font-size:11px; font-weight:600; margin-bottom:10px; }
+  .finished-card { text-align:center; padding:32px 16px; border-color:var(--gold) !important; }
+  .trophy { font-size:56px; display:block; margin-bottom:8px; }
+  .finished-card h2 { font-size:24px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; }
+  .final-score { font-size:18px; font-weight:700; margin-bottom:8px; }
+  .final-score.pink { color:var(--pink); }
+  .final-score.blue { color:var(--blue); }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-surface); border:1px solid var(--border-standard); border-radius:var(--radius-lg); padding:14px 24px; font-size:14px; box-shadow:var(--shadow-lg); z-index:100; display:none; text-align:center; max-width:90vw; font-weight:500; color:var(--text-secondary); }
+  .toast.show { display:block; }
+  .toast.success { border-color:var(--green); color:var(--green); }
+  .toast.error { border-color:var(--red); color:var(--red); }
+  .toast.purple { border-color:var(--purple); color:var(--purple); }
+  .toast.gold { border-color:var(--gold); color:var(--gold); }
+  .hidden { display:none !important; }
+  .admin-link { font-size:11px; color:var(--text-faint); text-align:center; margin-top:20px; opacity:0.3; cursor:pointer; display:block; text-decoration:none; transition:opacity .2s; }
+  .admin-link:hover { opacity:0.6; }
+
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="/">Hunt Home</a>
+  <span class="score-pill" id="score-display">0 pts</span>
+</div>
+
+<!-- === STEP 0: NAME === -->
+<div id="step-name" class="glass-card">
+  <div class="step-emoji">&#x1F382;</div>
+  <div class="step-title">Klaudusia's Birthday Hunt</div>
+  <label class="field-label">What's your name?</label>
+  <input type="text" class="input-field" id="player-name-input" placeholder="Your name" maxlength="24" autocomplete="off">
+  <div id="name-error" class="error-msg"></div>
+  <button class="btn btn-primary" id="btn-next-name" onclick="goToChoose()">Continue</button>
+  <div class="rules-mini">
+    <span>&#x1F4F8; Photo proof required</span> &middot; <span>&#x23F0; Speed = bonus pts</span> &middot; <span>&#x1F0CF; Bonus cards</span><br>
+    Skip = 0 pts
+  </div>
+</div>
+
+<!-- === STEP 1: CHOOSE CREATE OR JOIN === -->
+<div id="step-choose" class="glass-card hidden">
+  <div class="step-emoji">&#x1F3C3;</div>
+  <div class="step-title">Hey there, <span id="greeting-name"></span>!</div>
+  <div class="choice-grid">
+    <button class="choice-btn" onclick="goToCreate()">
+      <span class="icon">&#x2696;</span>
+      <span class="label">Create a Team</span>
+      <span class="hint">Pick Pink or Blue<br>You become Captain</span>
+    </button>
+    <button class="choice-btn" onclick="goToJoin()">
+      <span class="icon">&#x1F91D;</span>
+      <span class="label">Join a Team</span>
+      <span class="hint">Pink or Blue already exists<br>Hop right in</span>
+    </button>
+  </div>
+  <button class="btn btn-ghost btn-back" onclick="goToName()">&larr; Back</button>
+</div>
+
+<!-- === STEP 2a: CREATE TEAM === -->
+<div id="step-create" class="glass-card hidden">
+  <div class="step-emoji">&#x2696;</div>
+  <div class="step-title">Create Your Team</div>
+  <div class="color-grid">
+    <div class="color-card pink" id="card-pink" onclick="pickColor('pink')">
+      <span class="dot">&#x1F49D;</span>Team Pink
+    </div>
+    <div class="color-card blue" id="card-blue" onclick="pickColor('blue')">
+      <span class="dot">&#x1F535;</span>Team Blue
+    </div>
+  </div>
+  <div style="margin-top:18px;">
+    <label class="field-label">Team Name</label>
+    <input type="text" class="input-field" id="create-team-name" placeholder="Team name" maxlength="24" autocomplete="off">
+  </div>
+  <div id="create-error" class="error-msg"></div>
+  <button class="btn btn-pink" id="btn-create" onclick="createTeam()">Create Team &amp; Start Hunting</button>
+  <button class="btn btn-ghost btn-back" onclick="goToChoose()">&larr; Back</button>
+</div>
+
+<!-- === STEP 2b: JOIN TEAM === -->
+<div id="step-join" class="glass-card hidden">
+  <div class="step-emoji">&#x1F91D;</div>
+  <div class="step-title">Join a Team</div>
+  <div class="team-list" id="team-list">
+    <div class="step-sub" style="color:var(--text-faint)">Loading teams...</div>
+  </div>
+  <div id="join-error" class="error-msg"></div>
+  <button class="btn btn-ghost btn-back" onclick="goToChoose()">&larr; Back</button>
+</div>
+
+<!-- === HUNT AREA === -->
+<div class="hidden" id="hunt-area">
+
+  <!-- Team Members -->
+  <div class="hunt-card">
+    <div class="section-title"><span class="dot gold"></span>Your Squad</div>
+    <div class="members-strip" id="members-strip"></div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="hunt-card">
+    <div class="section-title"><span class="dot gold"></span>Leaderboard</div>
+    <div id="leaderboard">Waiting for teams...</div>
+  </div>
+
+  <!-- Bonus Card Offer -->
+  <div class="hunt-card hidden" id="bonus-offer-card">
+    <div class="section-title"><span class="dot purple"></span>Bonus Card Offered</div>
+    <div class="bonus-offer">
+      <div class="card-title" id="offer-card-name">DOUBLE STRIKE</div>
+      <div class="card-desc" id="offer-card-desc">The next task yields double the points.</div>
+      <div class="bonus-buttons">
+        <button class="btn btn-accept" onclick="respondBonus('accept')">Take It</button>
+        <button class="btn btn-decline" onclick="respondBonus('decline')">Ignore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Block Banner -->
+  <div class="hunt-card hidden" id="block-banner-card">
+    <div class="block-title" id="block-title">TIME TAX ACTIVE</div>
+    <div class="block-desc" id="block-desc">You must wait 5 minutes before your next move.</div>
+    <div class="countdown" id="block-countdown">04:59</div>
+  </div>
+
+  <!-- Current Mission -->
+  <div class="hunt-card current-mission" id="current-mission-card">
+    <div id="active-bonus-pill" class="bonus-pill hidden"></div>
+    <span class="mission-num" id="cur-num"></span>
+    <h2 class="mission-title" id="cur-title"></h2>
+    <span class="mission-loc" id="cur-location"></span>
+    <div class="task-box" id="cur-task"></div>
+
+    <div class="timer-bar" id="timer-bar">
+      <div class="timer-label">Mission Timer</div>
+      <div class="elapsed" id="timer-display">00:00</div>
+      <div class="timing-info">
+        &lt;5 min = <span>+5 pts</span> &middot; &lt;10 min = <span>+3 pts</span> &middot; &gt;10 min = no bonus
+      </div>
+    </div>
+
+    <div class="scan-box" id="scan-hint-box">
+      <span class="icon">&#x1F4F1;</span>
+      <strong>Scan the QR code at this location</strong>
+      <div class="hint-text" id="cur-scan-hint"></div>
+    </div>
+
+    <button class="btn btn-skip" id="skip-btn" onclick="skipMission()">Skip Mission (0 pts)</button>
+    <button class="btn btn-hint" id="hint-btn" onclick="buyHint()">Buy Hint (-3 pts)</button>
+    <div class="hint-reveal" id="hint-reveal"></div>
+  </div>
+
+  <!-- Finished -->
+  <div class="hunt-card finished-card hidden" id="finished-card">
+    <span class="trophy">&#x1F3C6;</span>
+    <h2>All Missions Complete!</h2>
+    <p class="final-score" id="final-score"></p>
+    <p style="color:var(--text-muted);font-size:14px;">Check the leaderboard to see who won!</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="hunt-card">
+    <div class="section-title"><span class="dot green"></span>Your Progress</div>
+    <div class="progress-grid" id="progress-grid"></div>
+    <button class="btn btn-ghost btn-small" id="leave-btn" onclick="leaveTeam()" style="margin-top:12px;width:auto;padding:8px 18px;font-size:12px;">Switch Team/Squad</button>
+  </div>
+</div>
+
+<a class="admin-link" href="/admin">Admin</a>
+<div id="toast" class="toast"></div>
+
+
+<script>
+// ================== CONFIG ==================
+var MISSIONS = [];
+var TEAM_KEY = 'klaudusia_team';
+var MEMBER_KEY = 'klaudusia_member';
+var SKIP_PENALTY = 0, BASE_POINTS = 10, TIMER_BONUS_FAST = 5, TIMER_BONUS_MEDIUM = 3;
+var TIMER_FAST_SEC = 300, TIMER_MEDIUM_SEC = 600;
+
+// ================== STATE ==================
+var myTeam = '', myMember = '', myColor = 'red', pickedColor = null, lastScore = 0;
+var timerInterval = null, blockInterval = null;
+
+// ================== HELPERS ==================
+function $(id){ return document.getElementById(id); }
+
+function showToast(msg, type) {
+  var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (type||'');
+  setTimeout(function(){ t.className = 'toast'; }, 4000);
+}
+
+function setError(id, msg) { var e = $(id); e.textContent = msg || ''; e.style.color = msg ? 'var(--red)' : 'transparent'; }
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+function formatTime(secs) {
+  var m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function applyTeamColor(color) {
+  if (color === 'red') color = 'pink';
+  myColor = color;
+  $('score-display').className = 'score-pill ' + color;
+  $('current-mission-card').classList.remove('pink','blue');
+  $('current-mission-card').classList.add(color);
+  $('cur-num').className = 'mission-num ' + color;
+  $('final-score').className = 'final-score ' + color;
+}
+
+// ================== NAVIGATION ==================
+function show(elId) { ['step-name','step-choose','step-create','step-join','hunt-area'].forEach(function(id){$(id).classList.add('hidden');}); if (elId) $(elId).classList.remove('hidden'); }
+
+function goToName() { show('step-name'); $('player-name-input').focus(); }
+
+function goToChoose() {
+  var name = $('player-name-input').value.trim();
+  if (!name) { setError('name-error', 'Please enter your name.'); return; }
+  if (name.length > 24) { setError('name-error', 'Name too long (24 max).'); return; }
+  setError('name-error', '');
+  myMember = name;
+  $('greeting-name').textContent = name;
+  show('step-choose');
+}
+
+function goToCreate() { show('step-create'); $('create-team-name').focus(); loadTeamColors(); }
+function goToJoin() { show('step-join'); loadTeamList(); }
+
+// Fetch existing teams to disable unavailable colors
+function loadTeamColors() {
+  fetch('/api/team/list').then(function(r){return r.json();}).then(function(list){
+    var pinkTaken = false, blueTaken = false;
+    for (var t in list) { if(list[t].color==='red') pinkTaken=true; if(list[t].color==='blue') blueTaken=true; }
+    $('card-pink').classList.toggle('disabled', pinkTaken);
+    $('card-blue').classList.toggle('disabled', blueTaken);
+    if (pinkTaken && !blueTaken) pickColor('blue');
+    else if (!pinkTaken && blueTaken) pickColor('pink');
+    else pickColor(null);
+  });
+}
+
+function pickColor(color) {
+  pickedColor = color;
+  $('card-pink').classList.toggle('selected', color === 'pink');
+  $('card-blue').classList.toggle('selected', color === 'blue');
+  var btn = $('btn-create');
+  btn.className = 'btn btn-' + color;
+  if (color === 'pink') { btn.style.background = 'linear-gradient(135deg,var(--pink),#ff1493)'; btn.style.boxShadow = '0 4px 20px var(--pink-glow)'; }
+  else if (color === 'blue') { btn.style.background = 'linear-gradient(135deg,var(--blue),#2d8cf0)'; btn.style.boxShadow = '0 4px 20px var(--blue-glow)'; }
+}
+
+function loadTeamList() {
+  var container = $('team-list');
+  container.innerHTML = '<div class="step-sub" style="color:var(--text-faint)">Loading teams...</div>';
+  fetch('/api/team/list').then(function(r){return r.json();}).then(function(list){
+    var keys = Object.keys(list);
+    if (keys.length === 0) {
+      container.innerHTML = '<div class="step-sub" style="color:var(--text-faint)">No teams yet. Go back and create one!</div>';
+      return;
+    }
+    container.innerHTML = keys.map(function(n){
+      var t = list[n];
+      var cls = t.color === 'red' ? 'pink' : 'blue';
+      return '<div class="team-list-item" onclick="joinExistingTeam(\'' + esc(n) + '\')">' +
+        '<div class="info">' +
+          '<span class="dot ' + cls + '" title="' + cls + '" style="flex-shrink:0"></span>' +
+          '<div>' +
+            '<div class="name">' + esc(n) + ' <span style="font-size:11px;color:var(--text-faint);font-weight:400">(' + esc(cls) + ')</span></div>' +
+            '<div class="count">' + (t.member_count||0) + ' ' + ((t.member_count||0)===1?'member':'members') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<span class="badge">Join &rarr;</span>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+// ================== CREATE / JOIN ==================
+function createTeam() {
+  var name = $('create-team-name').value.trim();
+  if (!name) { setError('create-error', 'Enter a team name.'); return; }
+  if (!pickedColor) { setError('create-error', 'Pick Pink or Blue team.'); return; }
+  var apiColor = pickedColor === 'pink' ? 'red' : 'blue';
+  var f = new FormData();
+  f.append('team', name); f.append('member', myMember); f.append('color', apiColor);
+  fetch('/api/team/create', {method:'POST', body:f})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) {
+        myTeam = name; localStorage.setItem(TEAM_KEY, name); localStorage.setItem(MEMBER_KEY, myMember);
+        applyTeamColor(d.color);
+        show('hunt-area'); loadAll();
+        showToast('Welcome, Captain ' + myMember + '! Get hunting!', 'success');
+      } else { setError('create-error', d.error || 'Failed'); }
+    });
+}
+
+function joinExistingTeam(teamName) {
+  var f = new FormData();
+  f.append('team', teamName); f.append('member', myMember);
+  fetch('/api/team/join', {method:'POST', body:f})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) {
+        myTeam = teamName; localStorage.setItem(TEAM_KEY, teamName); localStorage.setItem(MEMBER_KEY, myMember);
+        applyTeamColor(d.color);
+        show('hunt-area'); loadAll();
+        showToast('Joined ' + teamName + '! Good luck, ' + myMember + '!', 'success');
+      } else { setError('join-error', d.error || 'Failed'); }
+    });
+}
+
+function leaveTeam() {
+  localStorage.removeItem(TEAM_KEY); localStorage.removeItem(MEMBER_KEY);
+  myTeam = ''; myMember = '';
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (blockInterval) { clearInterval(blockInterval); blockInterval = null; }
+  goToName();
+}
+
+// ================== TIMER / BLOCK ==================
+function startTimer(missionTimes, cur) {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  var start = missionTimes ? missionTimes[cur.toString()] : null;
+  if (!start) { $('timer-display').textContent = '00:00'; return; }
+  function tick() {
+    var elapsed = Math.floor((Date.now() - new Date(start).getTime()) / 1000);
+    if (elapsed < 0) elapsed = 0;
+    $('timer-display').textContent = formatTime(elapsed);
+    var info = $('timer-bar').querySelector('.timing-info');
+    if (elapsed <= 300) info.innerHTML = 'Under 5 min = <span>+5 pts</span> &middot; Keep it up!';
+    else if (elapsed <= 600) info.innerHTML = '5-10 min = <span>+3 pts</span> &middot; Still good!';
+    else info.innerHTML = 'Over 10 min &middot; No time bonus, but keep going!';
+  }
+  tick(); timerInterval = setInterval(tick, 1000);
+}
+
+function startBlockCountdown(blockedUntil) {
+  if (blockInterval) { clearInterval(blockInterval); blockInterval = null; }
+  if (!blockedUntil) return;
+  var end = new Date(blockedUntil).getTime();
+  function tick() {
+    var remaining = Math.ceil((end - Date.now()) / 1000);
+    if (remaining <= 0) {
+      $('block-countdown').textContent = 'Unlocked!';
+      $('block-banner-card').classList.add('hidden');
+      clearInterval(blockInterval); blockInterval = null; loadAll(); return;
+    }
+    $('block-countdown').textContent = formatTime(remaining);
+  }
+  tick(); blockInterval = setInterval(tick, 1000);
+}
+
+// ================== HUNT RENDER ==================
+function loadAll() {
+  if (!myTeam || MISSIONS.length === 0) return;
+
+  fetch('/api/state').then(function(r){return r.json();}).then(function(state){
+    var entries = [];
+    for (var k in state.teams) entries.push([k, state.teams[k]]);
+    entries.sort(function(a,b){ return b[1].score - a[1].score; });
+    var totalPossible = MISSIONS.length * BASE_POINTS;
+
+    // Render leaderboard
+    $('leaderboard').innerHTML = entries.map(function(e,i){
+      var color = e[1].color === 'red' ? 'pink' : 'blue';
+      var rankCls = i===0 ? 'gold' : 'silver';
+      var pct = Math.min(100, Math.round(((e[1].score||0)/totalPossible)*100));
+      var members = e[1].members || [];
+      var memberStr = members.map(function(m){ return m.name; }).slice(0,3).join(', ');
+      if (members.length > 3) memberStr += ' +' + (members.length - 3);
+      return '<div class="lb-row'+(e[0]===myTeam?' you':'')+'" style="'+(e[0]===myTeam?'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);':'')+'" >'+
+        '<span class="lb-rank '+rankCls+'">'+(i+1)+'</span>'+
+        '<span class="lb-name"><span class="lb-dot-sm '+color+'-sm"></span>'+
+        (e[0]===myTeam?'<strong>'+esc(e[0])+'</strong>':'')+
+        ' <span style="font-size:10px;color:rgba(255,255,255,0.35);">'+esc(memberStr)+' &middot; '+(e[1].completed||0)+'/'+(MISSIONS.length)+'</span></span>'+
+        '<span class="lb-pts '+color+'">'+(e[1].score||0)+' pts</span>'+
+        '</div>'+
+        '<div class="lb-progress"><div class="lb-fill '+color+'" style="width:'+pct+'%"></div></div>';
+    }).join('') || 'No teams yet';
+
+    // Members strip
+    var myData = state.teams[myTeam] || {};
+    var members = myData.members || [];
+    $('members-strip').innerHTML = members.map(function(m){
+      var isYou = m.name === myMember;
+      return '<div class="member-tag" title="' + (m.is_captain ? 'Captain' : 'Member') + '" style="border-color:'+(myData.color==='red'?'var(--pink)':'var(--blue)')+'" >' +
+        (m.is_captain ? '<span class="crown">&#x1F451;</span>' : '') +
+        esc(m.name) +
+        (isYou ? '<span class="you">you</span>' : '') +
+      '</div>';
+    }).join('') || '<span style="color:var(--text-faint);font-size:12px;">Solo squad</span>';
+
+    fetch('/api/team/'+encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(ts){
+      if (ts.error) return;
+      var newScore = ts.score||0;
+      $('score-display').textContent = newScore+' pts';
+      if (newScore > lastScore && lastScore > 0) {
+        showToast('Mission completed! +'+(newScore-lastScore)+' pts', 'success');
+      }
+      lastScore = newScore;
+
+      // Bonus offer
+      var offerCard = $('bonus-offer-card');
+      if (ts.bonus_offer) {
+        offerCard.classList.remove('hidden');
+        $('offer-card-name').textContent = ts.bonus_offer.name || 'BONUS CARD';
+        $('offer-card-desc').textContent = ts.bonus_offer.description || '';
+      } else { offerCard.classList.add('hidden'); }
+
+      // Block
+      var blockCard = $('block-banner-card');
+      if (ts.blocked_until) {
+        blockCard.classList.remove('hidden');
+        $('block-title').textContent = (ts.active_cooldown||'Blocked').split(' - ')[0] || 'BLOCKED';
+        $('block-desc').textContent = ts.active_cooldown || 'Blocked';
+        startBlockCountdown(ts.blocked_until);
+      } else if (ts.active_bonus && ts.active_bonus.type === 'block') {
+        blockCard.classList.remove('hidden');
+        $('block-title').textContent = 'TIME BREAK';
+        $('block-desc').textContent = ts.active_bonus.pushups_required + ' pushups required before continuing.';
+        $('block-countdown').textContent = '';
+        if (!$('verify-pushups-btn')) {
+          var btn = document.createElement('button');
+          btn.id = 'verify-pushups-btn'; btn.className = 'btn btn-pushup'; btn.style.marginTop = '12px';
+          btn.textContent = 'Pushups Done - Unlock (' + ts.active_bonus.pushups_required + ')';
+          btn.onclick = verifyPushups;
+          blockCard.appendChild(btn);
+        }
+      } else { blockCard.classList.add('hidden'); var oldBtn = $('verify-pushups-btn'); if (oldBtn) oldBtn.remove(); }
+
+      // Active bonus pill
+      var pill = $('active-bonus-pill');
+      if (ts.active_bonus && !ts.blocked_until) { pill.textContent = ts.active_bonus.name + ' ACTIVE'; pill.classList.remove('hidden'); }
+      else { pill.classList.add('hidden'); }
+
+      // Mission rendering
+      var cur = ts.current_mission;
+      var completed = ts.completed || {};
+      var skipped = ts.skipped || {};
+
+      if (cur && cur <= MISSIONS.length) {
+        var m = MISSIONS[cur-1];
+        $('cur-num').textContent = 'Mission '+cur+' of '+MISSIONS.length;
+        $('cur-title').textContent = m.title;
+        $('cur-location').textContent = m.location || '';
+        $('cur-task').textContent = m.task || '';
+        $('cur-scan-hint').textContent = 'Hint: ' + (m.scan_hint || 'Find the QR code here');
+        $('current-mission-card').classList.remove('hidden');
+        $('finished-card').classList.add('hidden');
+        startTimer(ts.mission_times, cur);
+        var reveal = $('hint-reveal'), hintBtn = $('hint-btn');
+        var hintsBought = ts.hints_bought || {};
+        if (hintsBought[cur.toString()]) {
+          reveal.textContent = m.hint || 'No hint available.';
+          reveal.classList.add('show');
+          hintBtn.disabled = true;
+        } else { reveal.classList.remove('show'); reveal.textContent = ''; hintBtn.disabled = false; }
+      } else {
+        $('current-mission-card').classList.add('hidden');
+        $('finished-card').classList.remove('hidden');
+        $('final-score').textContent = newScore+' pts';
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      }
+
+      // Progress grid
+      var grid = $('progress-grid');
+      grid.innerHTML = '';
+      for (var i=0; i<MISSIONS.length; i++) {
+        var mid = (i+1).toString();
+        var chip = document.createElement('div');
+        chip.className = 'prog-chip';
+        chip.textContent = i+1;
+        if (completed[mid]) { chip.className += ' done-' + (myData.color==='red'?'pink':'blue'); chip.textContent = '✓'; }
+        else if (skipped[mid]) { chip.className += ' done-'+(myData.color==='red'?'pink':'blue'); chip.style.opacity = skipped[mid].free_skip ? '1' : '0.4'; chip.textContent = skipped[mid].free_skip ? '⚡' : '➤'; }
+        else if (mid === (cur||0).toString()) { chip.className += ' current'; chip.textContent = '○'+mid; }
+        grid.appendChild(chip);
+      }
+    });
+  });
+}
+
+// ================== ACTIONS ==================
+function skipMission() {
+  if (!confirm('Skip this mission? No points lost, but you get 0 pts for this task.')) return;
+  var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
+  var f = new FormData(); f.append('team', myTeam); f.append('mission_id', curId);
+  fetch('/api/skip', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+    if (d.skipped) { $('score-display').textContent = d.score+' pts'; showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error'); loadAll(); }
+    else { showToast(d.error, 'error'); }
+  });
+}
+
+function buyHint() {
+  var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
+  if ($('hint-reveal').classList.contains('show')) return;
+  if (!confirm('Spend 3 points for the exact QR location?')) return;
+  var f = new FormData(); f.append('team', myTeam); f.append('mission_id', curId);
+  fetch('/api/hint', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+    if (d.error) { showToast(d.error, 'error'); return; }
+    if (!d.already_bought) { $('score-display').textContent = d.score+' pts'; showToast('Hint bought! -3 pts', 'error'); }
+    $('hint-reveal').textContent = d.hint; $('hint-reveal').classList.add('show'); $('hint-btn').disabled = true;
+  });
+}
+
+function respondBonus(action) {
+  var f = new FormData(); f.append('team', myTeam); f.append('action', action);
+  fetch('/api/bonus/respond', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+    if (d.success) { showToast(d.msg || 'Bonus ' + action + 'ed!', d.action === 'accepted' ? 'purple' : 'success'); loadAll(); }
+    else { showToast(d.error, 'error'); }
+  });
+}
+
+function verifyPushups() {
+  if (!confirm('Confirm: your team completed the required pushups?')) return;
+  var f = new FormData(); f.append('team', myTeam);
+  fetch('/api/verify/pushups', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
+    if (d.success) { showToast(d.msg, 'success'); loadAll(); }
+    else { showToast(d.error, 'error'); }
+  });
+}
+
+// ================== INIT ==================
+myTeam = localStorage.getItem(TEAM_KEY) || '';
+myMember = localStorage.getItem(MEMBER_KEY) || '';
+
+fetch('/api/missions?team=' + encodeURIComponent(myTeam||'')).then(function(r){return r.json();}).then(function(data){
+  MISSIONS = data;
+});
+
+if (myTeam && myMember) {
+  var storedColor = localStorage.getItem('klaudusia_color') || '';
+  myColor = storedColor === 'blue' ? 'blue' : 'pink';
+  applyTeamColor(myColor);
+  show('hunt-area');
+  loadAll();
+  // Refresh team color from server
+  fetch('/api/team/'+encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(d){
+    if (d.color) { myColor = d.color === 'blue' ? 'blue' : 'pink'; localStorage.setItem('klaudusia_color', myColor); applyTeamColor(myColor); }
+  });
+} else {
+  goToName();
+}
+
+setInterval(function(){ if (myTeam) loadAll(); }, 5000);
+</script>
+
+</body>
+</html>
