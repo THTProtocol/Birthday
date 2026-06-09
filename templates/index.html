@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Klaudusia's Birthday Hunt</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -21,12 +21,13 @@
     --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
+  html { scroll-behavior:smooth; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
   body {
     font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background:var(--bg-page); color:var(--text-primary); min-height:100dvh;
     -webkit-font-smoothing:antialiased;
-    display:flex; flex-direction:column; align-items:center; padding:12px;
+    display:flex; flex-direction:column; align-items:center; padding:8px;
+    padding-bottom:env(safe-area-inset-bottom, 16px);
   }
   .top-bar { width:100%; max-width:560px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px; }
   .top-bar a { color:var(--text-faint); text-decoration:none; font-size:12px; font-weight:500; transition:color .15s; }
@@ -44,8 +45,9 @@
   .input-field { width:100%; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-standard); background:var(--bg-deep); color:var(--text-primary); font-size:15px; font-family:inherit; outline:none; text-align:center; transition:border-color .2s, box-shadow .2s; }
   .input-field:focus { border-color:var(--accent-bright); box-shadow:0 0 0 3px rgba(113,112,255,0.10); }
   .input-field::placeholder { color:var(--text-faint); }
-  .btn { display:block; width:100%; padding:12px; border-radius:var(--radius-md); border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; }
-  .btn:disabled { opacity:.35; cursor:not-allowed; }
+  .btn { display:block; width:100%; padding:16px; border-radius:var(--radius-md); border:none; font-size:15px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; font-family:inherit; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  .btn:active { transform:scale(0.97); }
+  .btn:disabled { opacity:.35; cursor:not-allowed; transform:none !important; }
   .btn-primary { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(94,106,210,0.30); }
   .btn-primary:hover:not(:disabled) { background:var(--accent-hover); transform:translateY(-1px); box-shadow:0 4px 14px rgba(94,106,210,0.35); }
   .btn-ghost { background:transparent; border:1px solid var(--border-standard); color:var(--text-muted); margin-top:10px; font-size:13px; padding:10px; }
@@ -69,7 +71,7 @@
   .color-card.selected { border-width:2px; background:var(--bg-surface); transform:scale(1.02); }
   .color-card.selected.pink { border-color:var(--pink); box-shadow:0 0 20px var(--pink-glow); }
   .color-card.selected.blue { border-color:var(--blue); box-shadow:0 0 20px var(--blue-glow); }
-  .color-card.disabled { opacity:.2; cursor:not-allowed; pointer-events:none; }
+  .color-card.disabled { opacity:0.5; cursor:pointer; }
   .team-list { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
   .team-list-item { padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-standard); background:var(--bg-deep); cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:space-between; }
   .team-list-item:hover { border-color:var(--accent-bright); background:var(--bg-surface); transform:translateY(-1px); }
@@ -131,13 +133,8 @@
   .timer-bar .timer-label { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; margin-top:4px; }
   .timer-bar .timing-info { font-size:12px; color:var(--text-faint); margin-top:8px; }
   .timer-bar .timing-info span { color:var(--green); font-weight:600; }
-  .hint-reveal { font-size:13px; line-height:1.5; color:var(--blue); padding:14px; background:var(--blue-bg); border:1px solid rgba(77,166,255,0.20); border-radius:var(--radius-md); margin:10px 0; display:none; }
-  .hint-reveal.show { display:block; }
   .btn-skip { background:transparent; border:1.5px dashed rgba(255,209,102,0.25); color:var(--gold); margin-top:10px; font-size:14px; font-weight:500; }
   .btn-skip:hover { background:var(--gold-bg); }
-  .btn-hint { background:transparent; border:1px dashed rgba(77,166,255,0.25); color:var(--blue); margin-top:8px; font-size:14px; font-weight:500; }
-  .btn-hint:hover { background:var(--blue-bg); }
-  .btn-hint:disabled { opacity:.3; pointer-events:none; }
   .progress-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(40px,1fr)); gap:6px; }
   .prog-chip { aspect-ratio:1; border-radius:var(--radius-md); border:1px solid var(--border-standard); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; background:var(--bg-deep); color:var(--text-faint); }
   .prog-chip.done-pink { background:var(--pink-bg); border-color:rgba(255,93,165,0.25); color:var(--pink); }
@@ -273,7 +270,7 @@
       <span class="photo-sub">Any teammate can upload. Required to complete.</span>
       <img class="photo-preview" id="dash-photo-preview" src="" alt="">
     </div>
-    <button class="btn btn-primary" id="btn-submit-proof" onclick="submitProof()" style="display:none;">Submit Proof &amp; Complete Mission</button>
+    <button class="btn btn-submit-proof" id="btn-submit-proof" onclick="submitProof()">Submit Proof &amp; Complete Mission</button>
 
     <div class="timer-bar" id="timer-bar">
       <div class="timer-label">Mission Timer</div>
@@ -290,8 +287,6 @@
     </div>
 
     <button class="btn btn-skip" id="skip-btn" onclick="skipMission()">Skip Mission (0 pts)</button>
-    <button class="btn btn-hint" id="hint-btn" onclick="buyHint()">Buy Hint (-3 pts)</button>
-    <div class="hint-reveal" id="hint-reveal"></div>
   </div>
 
   <!-- Finished -->
@@ -314,15 +309,44 @@
 <div id="toast" class="toast"></div>
 
 <style>
-/* Photo upload on dashboard */
-.photo-upload-box { margin:14px 0; padding:18px; border:1.5px dashed var(--border-standard); border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:all .2s; background:var(--bg-deep); }
+/* Photo upload on dashboard - mobile optimized */
+.photo-upload-box {
+  margin:14px 0; padding:24px 16px;
+  border:2px dashed var(--border-standard);
+  border-radius:var(--radius-lg);
+  text-align:center; cursor:pointer; transition:all .2s;
+  background:var(--bg-deep); min-height:80px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.photo-upload-box:active { transform:scale(0.98); border-color:var(--gold); }
 .photo-upload-box:hover { border-color:var(--gold); background:rgba(255,209,102,0.03); }
-.photo-upload-box.has-photo { border-style:solid; border-color:var(--green); background:var(--green-bg); }
+.photo-upload-box.has-photo {
+  border-style:solid; border-color:var(--green); background:var(--green-bg);
+  padding:12px;
+}
 .photo-upload-box input { display:none; }
-.photo-upload-box .photo-label { font-size:14px; font-weight:600; color:var(--text-secondary); display:block; }
-.photo-upload-box .photo-sub { font-size:12px; color:var(--text-faint); margin-top:4px; display:block; }
-.photo-upload-box .photo-preview { max-width:100%; border-radius:var(--radius-md); margin-top:10px; display:none; }
+.photo-upload-box .photo-label { font-size:15px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:4px; }
+.photo-upload-box .photo-sub { font-size:12px; color:var(--text-faint); display:block; }
+.photo-upload-box .photo-preview { max-width:100%; max-height:200px; border-radius:var(--radius-md); margin-top:10px; display:none; }
 .photo-upload-box.has-photo .photo-preview { display:block; }
+.photo-upload-box.has-photo .photo-label,
+.photo-upload-box.has-photo .photo-sub { display:none; }
+
+.btn-submit-proof {
+  display:none; background:var(--green); color:#0f1011;
+  box-shadow:0 2px 12px var(--green-glow); font-weight:600;
+  font-size:15px; padding:14px; margin-top:10px;
+}
+.btn-submit-proof:active:not(:disabled) { background:#34d399; }
+
+@media (max-width:380px) {
+  .glass-card, .step-card { padding:20px 14px; }
+  .step-title { font-size:22px; }
+  .hunt-card { padding:16px 14px; }
+  .mission-title { font-size:19px; }
+  .task-box { font-size:13px; padding:12px; }
+}
 </style>
 
 <script>
@@ -389,10 +413,11 @@ function loadTeamStatuses() {
     }
     $('card-pink').classList.toggle('disabled', pinkTaken);
     $('card-blue').classList.toggle('disabled', blueTaken);
-    $('pink-status').textContent = pinkTaken ? 'Join ' + pinkName : 'Available - You will be Captain';
-    $('blue-status').textContent = blueTaken ? 'Join ' + blueName : 'Available - You will be Captain';
-    if (pinkTaken && !blueTaken) { pickTeam('blue'); }
-    else if (!pinkTaken && blueTaken) { pickTeam('pink'); }
+    $('pink-status').textContent = pinkTaken ? 'Join ' + pinkName : 'Available - Create Team';
+    $('blue-status').textContent = blueTaken ? 'Join ' + blueName : 'Available - Create Team';
+    // Auto-pick first team that exists (both exist = pick pink by default)
+    if (pinkTaken) { pickTeam('pink'); }
+    else if (blueTaken) { pickTeam('blue'); }
     else { pickTeam(null); }
   });
 }
@@ -467,6 +492,8 @@ function previewDashPhoto(input) {
       box.classList.add('has-photo');
       box.querySelector('.photo-label').textContent = 'Photo attached!';
       $('btn-submit-proof').style.display = 'block';
+      $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
+      $('btn-submit-proof').disabled = false;
     };
     reader.readAsDataURL(input.files[0]);
   }
@@ -636,13 +663,6 @@ function loadAll() {
         $('current-mission-card').classList.remove('hidden');
         $('finished-card').classList.add('hidden');
         startTimer(ts.mission_times, cur);
-        var reveal = $('hint-reveal'), hintBtn = $('hint-btn');
-        var hintsBought = ts.hints_bought || {};
-        if (hintsBought[cur.toString()]) {
-          reveal.textContent = m.hint || 'No hint available.';
-          reveal.classList.add('show');
-          hintBtn.disabled = true;
-        } else { reveal.classList.remove('show'); reveal.textContent = ''; hintBtn.disabled = false; }
       } else {
         $('current-mission-card').classList.add('hidden');
         $('finished-card').classList.remove('hidden');
@@ -675,18 +695,6 @@ function skipMission() {
   fetch('/api/skip', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
     if (d.skipped) { $('score-display').textContent = d.score+' pts'; showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error'); loadAll(); }
     else { showToast(d.error, 'error'); }
-  });
-}
-
-function buyHint() {
-  var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
-  if ($('hint-reveal').classList.contains('show')) return;
-  if (!confirm('Spend 3 points for the exact QR location?')) return;
-  var f = new FormData(); f.append('team', myTeam); f.append('mission_id', curId);
-  fetch('/api/hint', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
-    if (d.error) { showToast(d.error, 'error'); return; }
-    if (!d.already_bought) { $('score-display').textContent = d.score+' pts'; showToast('Hint bought! -3 pts', 'error'); }
-    $('hint-reveal').textContent = d.hint; $('hint-reveal').classList.add('show'); $('hint-btn').disabled = true;
   });
 }
 
@@ -730,6 +738,36 @@ if (myTeam && myMember) {
 }
 
 setInterval(function(){ if (myTeam) loadAll(); }, 5000);
+
+// Extra live poll for pre-join screens (leaderboard + team availability)
+setInterval(function(){
+  var pick = $('step-pick');
+  if (pick && !pick.classList.contains('hidden')) {
+    loadTeamStatuses();
+  }
+  // live global leaderboard on landing (when not in a team)
+  var lb = $('leaderboard');
+  if (lb && !myTeam) {
+    fetch('/api/state').then(function(r){return r.json();}).then(function(state){
+      if (!state || !state.teams) return;
+      var entries = Object.keys(state.teams).map(function(k){ return [k, state.teams[k]]; });
+      entries.sort(function(a,b){ return (b[1].score||0) - (a[1].score||0); });
+      var totalM = state.total_missions || 10;
+      lb.innerHTML = entries.length ? entries.map(function(e,i){
+        var color = e[1].color === 'red' ? 'pink' : 'blue';
+        var rankCls = i===0 ? 'gold' : 'silver';
+        var pct = Math.min(100, Math.round(((e[1].score||0) / (totalM*10) )*100));
+        var memberStr = (e[1].members||[]).map(function(m){return m.name;}).slice(0,2).join(', ');
+        return '<div class="lb-row">' +
+          '<span class="lb-rank '+rankCls+'">'+(i+1)+'</span>' +
+          '<span class="lb-name"><span class="lb-dot-sm '+color+'-sm"></span> ' + esc(e[0]) +
+          ' <span style="font-size:10px;color:rgba(255,255,255,0.35);">' + esc(memberStr) + ' &middot; ' + (e[1].completed||0) + '/' + totalM + '</span></span>' +
+          '<span class="lb-pts '+color+'">' + (e[1].score||0) + ' pts</span>' +
+          '</div><div class="lb-progress"><div class="lb-fill '+color+'" style="width:'+pct+'%"></div></div>';
+      }).join('') : 'Waiting for teams...';
+    }).catch(function(){});
+  }
+}, 7000);
 </script>
 </body>
 </html>

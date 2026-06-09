@@ -2,115 +2,273 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>{{ mission.title }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Mission {{ mission.id }} - {{ mission.title }}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
-    --bg-deep:#010102; --bg-page:#08090a; --bg-panel:#0f1011; --bg-surface:#191a1b; --bg-hover:#28282c;
+    --bg-deep:#010102; --bg-page:#08090a; --bg-panel:#0f1011; --bg-surface:#191a1b;
     --text-primary:#f7f8f8; --text-secondary:#d0d6e0; --text-muted:#8a8f98; --text-faint:#62666d;
-    --border-subtle:rgba(255,255,255,0.05); --border-standard:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.12);
-    --accent:#5e6ad2; --accent-hover:#828fff; --accent-bright:#7170ff;
-    --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
+    --border-standard:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.12);
+    --pink:#ff5da5; --pink-bg:rgba(255,93,165,0.08); --pink-glow:rgba(255,93,165,0.25);
+    --blue:#4da6ff; --blue-bg:rgba(77,166,255,0.08); --blue-glow:rgba(77,166,255,0.25);
     --gold:#ffd166; --gold-bg:rgba(255,209,102,0.08); --gold-glow:rgba(255,209,102,0.20);
+    --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
     --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10);
-    --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
-    --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px;
+    --team-color: {{ '#ff5da5' if color == 'red' else '#4da6ff' }};
+    --team-bg: {{ 'rgba(255,93,165,0.08)' if color == 'red' else 'rgba(77,166,255,0.08)' }};
+    --team-glow: {{ 'rgba(255,93,165,0.25)' if color == 'red' else 'rgba(77,166,255,0.25)' }};
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  html { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
   body {
     font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background:var(--bg-page); color:var(--text-primary); min-height:100dvh;
-    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center; padding:12px;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center;
+    padding:8px; padding-bottom:env(safe-area-inset-bottom, 16px);
   }
-  .glass-card {
-    width:100%; max-width:520px; background:var(--bg-panel); border:1px solid var(--border-standard);
-    border-radius:var(--radius-xl); padding:28px 24px; margin-top:16px;
-    box-shadow:var(--shadow-lg); animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both;
-  }
-  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-  .mission-num { font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:600; color:var(--text-faint); margin-bottom:6px; }
-  h1 { font-size:24px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; line-height:1.25; }
-  .location { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
-  .task-image { width:100%; border-radius:var(--radius-lg); margin:12px 0; border:1px solid var(--border-standard); max-height:320px; object-fit:cover; }
-  .task-box { background:var(--bg-deep); border:1px solid var(--border-standard); border-radius:var(--radius-md); padding:16px; margin:12px 0; font-size:14px; line-height:1.65; text-align:left; color:var(--text-secondary); }
-  .task-box strong { color:var(--gold); }
 
-  /* Photo upload */
-  .photo-upload { margin:14px 0; padding:20px; border:1.5px dashed rgba(255,107,107,0.3); border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:all .2s; background:var(--bg-deep); }
-  .photo-upload.missing { background:var(--red-bg); border-color:var(--red); }
-  .photo-upload.has-photo { border-style:solid; border-color:var(--green); background:var(--green-bg); }
-  .photo-upload .required-tag { font-size:10px; color:var(--red); font-weight:600; letter-spacing:1px; margin-bottom:6px; display:block; text-transform:uppercase; }
-  .photo-upload .label { font-size:14px; color:var(--text-muted); font-weight:500; }
-  .photo-upload .sub-label { font-size:12px; color:var(--text-faint); margin-top:4px; }
+  .page { width:100%; max-width:500px; }
+
+  /* ===== HEADER BADGE ===== */
+  .header-badge {
+    display:flex; align-items:center; gap:10px; padding:10px 16px; margin-bottom:10px;
+    background:var(--bg-panel); border:1px solid var(--border-standard);
+    border-radius:var(--radius-lg);
+  }
+  .header-badge .team-dot {
+    width:12px; height:12px; border-radius:50%;
+    background:var(--team-color); box-shadow:0 0 10px var(--team-glow);
+    flex-shrink:0;
+  }
+  .header-badge .info { flex:1; min-width:0; }
+  .header-badge .mission-tag { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint); }
+  .header-badge .team-name { font-size:13px; font-weight:600; color:var(--team-color); }
+
+  /* ===== MISSION CARD ===== */
+  .card {
+    width:100%; background:var(--bg-panel); border:1px solid var(--border-standard);
+    border-radius:var(--radius-xl); overflow:hidden; margin-bottom:10px;
+  }
+  .card-body { padding:20px; }
+
+  .mission-title {
+    font-size:22px; font-weight:700; letter-spacing:-0.5px; line-height:1.2; margin-bottom:4px;
+  }
+  .mission-loc {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; color:var(--gold); background:var(--gold-bg);
+    padding:5px 12px; border-radius:999px; font-weight:500; margin-bottom:14px;
+  }
+
+  .task-box {
+    font-size:15px; line-height:1.7; color:var(--text-secondary);
+    padding:16px; background:var(--bg-deep); border-radius:var(--radius-md);
+    border-left:3px solid var(--team-color); margin-bottom:16px;
+  }
+
+  .task-image {
+    width:100%; border-radius:var(--radius-md); margin-bottom:16px;
+    border:1px solid var(--border-standard); max-height:260px; object-fit:cover;
+  }
+
+  /* ===== NEXT DESTINATION (visible immediately) ===== */
+  .next-dest {
+    background:var(--gold-bg); border:1.5px solid rgba(255,209,102,0.25);
+    border-radius:var(--radius-lg); padding:16px; margin-bottom:16px;
+  }
+  .next-dest .label {
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px;
+    color:var(--gold); margin-bottom:8px; display:flex; align-items:center; gap:8px;
+  }
+  .next-dest .label::before {
+    content:""; width:8px; height:8px; border-radius:50%; background:var(--gold);
+    box-shadow:0 0 8px var(--gold-glow);
+  }
+  .next-dest .clue { font-size:14px; color:var(--text-secondary); line-height:1.6; }
+
+  /* ===== SPEED BONUS ===== */
+  .speed-bonus {
+    background:var(--green-bg); border:1px solid rgba(16,185,129,0.15);
+    border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px;
+    font-size:13px; color:var(--text-muted); text-align:center; line-height:1.5;
+  }
+  .speed-bonus strong { color:var(--green); }
+
+  /* ===== PHOTO UPLOAD ===== */
+  .photo-section { margin-bottom:16px; }
+  .photo-upload {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:28px 16px; border:2px dashed rgba(255,255,255,0.12);
+    border-radius:var(--radius-lg); cursor:pointer; transition:all .2s;
+    background:var(--bg-deep); text-align:center; min-height:100px;
+  }
+  .photo-upload:active { transform:scale(0.98); }
+  .photo-upload.has-photo {
+    border-style:solid; border-color:var(--green); background:var(--green-bg);
+    padding:12px;
+  }
   .photo-upload input { display:none; }
-  .photo-preview { max-width:100%; border-radius:var(--radius-md); margin-top:10px; display:none; }
+  .photo-upload .icon { font-size:36px; margin-bottom:8px; }
+  .photo-upload .big-label { font-size:15px; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
+  .photo-upload .sub-label { font-size:12px; color:var(--text-faint); }
+  .photo-upload .required-tag {
+    font-size:10px; font-weight:700; color:var(--red); letter-spacing:1px;
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  .photo-preview {
+    width:100%; max-height:240px; object-fit:contain; border-radius:var(--radius-md);
+    display:none;
+  }
+  .photo-upload.has-photo .photo-preview { display:block; }
+  .photo-upload.has-photo .icon,
+  .photo-upload.has-photo .big-label,
+  .photo-upload.has-photo .sub-label,
+  .photo-upload.has-photo .required-tag { display:none; }
 
-  .timing-banner { background:var(--gold-bg); border:1px solid rgba(255,209,102,0.15); border-radius:var(--radius-md); padding:12px 16px; margin:12px 0; font-size:13px; color:var(--text-secondary); text-align:left; }
-  .timing-banner strong { color:var(--gold); }
+  /* ===== BUTTONS ===== */
+  .btn {
+    display:block; width:100%; padding:16px; border-radius:var(--radius-md);
+    border:none; font-size:16px; font-weight:700; cursor:pointer;
+    transition:all .15s; text-align:center; font-family:inherit;
+    -webkit-tap-highlight-color:transparent; user-select:none;
+    -webkit-user-select:none;
+  }
+  .btn:active { transform:scale(0.97); }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; }
 
-  .btn { display:block; width:100%; padding:12px; border-radius:var(--radius-md); border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; }
-  .btn-primary { background:var(--green); color:#0f1011; box-shadow:0 2px 10px var(--green-glow); }
-  .btn-primary:hover { background:#34d399; transform:translateY(-1px); }
-  .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
-  .btn-ghost { background:transparent; border:1px solid var(--border-standard); color:var(--text-muted); margin-top:10px; font-size:13px; padding:10px; text-decoration:none; }
-  .btn-ghost:hover { border-color:var(--border-hover); color:var(--text-secondary); background:rgba(255,255,255,0.03); }
+  .btn-primary {
+    background:var(--green); color:#0f1011;
+    box-shadow:0 2px 12px var(--green-glow);
+    margin-bottom:10px;
+  }
+  .btn-primary:active:not(:disabled) { background:#34d399; }
 
-  .next-hint { background:var(--gold-bg); border:1.5px solid rgba(255,209,102,0.25); border-radius:var(--radius-lg); padding:16px; font-size:14px; color:var(--text-secondary); margin:14px 0; text-align:left; line-height:1.6; }
-  .next-hint .label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
-  .next-hint .label::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold-glow); }
+  .btn-back {
+    background:transparent; border:1px solid var(--border-standard);
+    color:var(--text-muted); margin-bottom:10px; font-weight:500;
+  }
+  .btn-back:active { border-color:var(--border-hover); background:rgba(255,255,255,0.03); }
 
-  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-surface); border:1px solid var(--border-standard); border-radius:var(--radius-lg); padding:14px 24px; font-size:14px; box-shadow:var(--shadow-lg); z-index:100; display:none; text-align:center; max-width:90vw; font-weight:500; color:var(--text-secondary); }
-  .toast.success { border-color:var(--green); color:var(--green); display:block; }
-  .toast.error { border-color:var(--red); color:var(--red); display:block; }
+  /* ===== DONE STATE ===== */
+  .done-badge {
+    text-align:center; padding:20px; background:var(--green-bg);
+    border:1px solid rgba(16,185,129,0.25); border-radius:var(--radius-lg); font-weight:600;
+    font-size:15px; color:var(--green); display:none;
+  }
+  .done-badge.show { display:block; }
 
-  .winner-banner { display:none; background:linear-gradient(135deg, rgba(16,185,129,0.10), rgba(255,209,102,0.05)); border:1px solid rgba(16,185,129,0.25); border-radius:var(--radius-xl); padding:28px 24px; margin-top:16px; text-align:center; }
-  .winner-banner .icon { font-size:52px; display:block; margin-bottom:8px; }
-  .winner-banner h2 { font-size:22px; font-weight:700; color:var(--green); letter-spacing:-0.3px; }
+  /* ===== FINAL ===== */
+  .winner-banner {
+    display:none; text-align:center; padding:32px 24px;
+    background:linear-gradient(135deg, var(--team-bg), var(--gold-bg));
+    border:1px solid var(--team-color); border-radius:var(--radius-xl); margin-bottom:10px;
+  }
+  .winner-banner.show { display:block; }
+  .winner-banner .trophy { font-size:52px; display:block; margin-bottom:8px; }
+  .winner-banner h2 { font-size:22px; font-weight:700; color:var(--team-color); margin-bottom:4px; }
+  .winner-banner p { font-size:14px; color:var(--text-muted); }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--bg-surface); border:1px solid var(--border-standard);
+    border-radius:var(--radius-lg); padding:16px 28px; font-size:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:100; display:none;
+    text-align:center; max-width:90vw; font-weight:600; color:var(--text-secondary);
+  }
+  .toast.show { display:block; }
+  .toast.success { border-color:var(--green); color:var(--green); }
+  .toast.error { border-color:var(--red); color:var(--red); }
+
+  @media (max-width:380px) {
+    .card-body { padding:14px; }
+    .mission-title { font-size:19px; }
+    .task-box { font-size:14px; }
+    .btn { padding:14px; font-size:15px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="glass-card">
-  <div class="mission-num">Mission {{ mission.id }} - {{ 'PINK' if color == 'red' else (color|upper) }} Team</div>
-  <h1>{{ mission.title }}</h1>
-  <div class="location">{{ mission.location }}</div>
+<div class="page">
 
-  {% if mission.task_image %}
-  <img class="task-image" src="{{ mission.task_image }}" alt="Task image" id="task-img">
-  {% endif %}
-
-  <div class="task-box">
-    <strong>Your Task:</strong><br>
-    {{ mission.task }}
+  <!-- Header -->
+  <div class="header-badge">
+    <div class="team-dot"></div>
+    <div class="info">
+      <div class="mission-tag">Mission {{ mission.id }} of 10</div>
+      <div class="team-name">{{ 'PINK' if color == 'red' else 'BLUE' }} Team</div>
+    </div>
   </div>
 
-  <div class="timing-banner">
-    <strong>Speed Bonus:</strong> Under 5 min = +{{ timer_bonus_fast }} pts / Under 10 min = +{{ timer_bonus_medium }} pts / No stranger help allowed / Photo proof required
+  <!-- Mission Card -->
+  <div class="card">
+    <div class="card-body">
+      <h1 class="mission-title">{{ mission.title }}</h1>
+      <div class="mission-loc">&#x1F4CD; {{ mission.location }}</div>
+
+      {% if mission.task_image %}
+      <img class="task-image" src="{{ mission.task_image }}" alt="Task image">
+      {% endif %}
+
+      <div class="task-box">
+        <strong style="color:var(--gold);display:block;margin-bottom:6px;">Your Task:</strong>
+        {{ mission.task }}
+      </div>
+
+      <!-- NEXT DESTINATION - visible immediately on scan -->
+      <div class="next-dest">
+        <div class="label">Next Destination</div>
+        <div class="clue">
+          {% if next_hint %}
+            {{ next_hint }}
+          {% else %}
+            Congratulations! You have completed all missions. Race back to the admin!
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Speed Bonus Info -->
+      <div class="speed-bonus">
+        <strong>&#x26A1; Speed Bonus:</strong> Under 5 min = +{{ timer_bonus_fast }} pts | Under 10 min = +{{ timer_bonus_medium }} pts | Over 10 min = no bonus
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="photo-section">
+        <div class="photo-upload" id="photo-box" onclick="document.getElementById('photo-input').click()">
+          <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto(this)">
+          <span class="required-tag">* Required *</span>
+          <span class="icon">&#x1F4F7;</span>
+          <span class="big-label">Tap to take a photo</span>
+          <span class="sub-label">Photo proof is mandatory - rear camera will open</span>
+          <img class="photo-preview" id="photo-preview" src="" alt="">
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button class="btn btn-primary" id="submit-btn" onclick="submitMission()">
+        Complete Mission +{{ base_points }} pts
+      </button>
+
+      <!-- Done State -->
+      <div class="done-badge" id="done-badge">&#x2705; Mission complete!</div>
+
+      <!-- Back Link -->
+      <button class="btn btn-back" onclick="window.location.href='/'">&#x2190; Back to Hunt Dashboard</button>
+    </div>
   </div>
 
-  <div class="photo-upload" id="photo-upload-box" onclick="document.getElementById('photo-input').click()">
-    <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto(this)">
-    <span class="required-tag">* Required *</span>
-    <div class="label">Take a photo as proof</div>
-    <div class="sub-label">Photo proof is mandatory. No photo = no points.</div>
-    <img class="photo-preview" id="photo-preview" src="" alt="">
-  </div>
-
-  <button class="btn btn-primary" id="complete-btn" onclick="markComplete()">Mark Mission Complete +{{ base_points }} pts</button>
-  <a href="/" class="btn btn-ghost">Back to Hunt</a>
-
-  <div class="next-hint" id="next-hint">
-    <div class="label">Next Destination</div>
-    {{ next_hint or 'Congratulations! You have completed all missions.' }}
-  </div>
-
+  <!-- Winner Banner for final mission -->
   {% if is_last %}
-  <div class="winner-banner" id="winner-banner">
-    <span class="icon">&#127942;</span>
-    <h2>You finished all {{ 'PINK' if color == 'red' else (color|upper) }} missions!</h2>
+  <div class="winner-banner show" id="winner-banner">
+    <span class="trophy">&#x1F3C6;</span>
+    <h2>All missions complete!</h2>
+    <p>You finished all {{ 'PINK' if color == 'red' else 'BLUE' }} Team tasks! Check the leaderboard to see who won!</p>
   </div>
   {% endif %}
+
 </div>
 
 <div id="toast" class="toast"></div>
@@ -119,31 +277,47 @@
 var MISSION_ID = {{ mission.id }};
 var MISSION_COLOR = "{{ color }}";
 var BASE_POINTS = {{ base_points }};
-var TEAM_KEY = 'klaudusia_team';
 var IS_LAST = {{ 'true' if is_last else 'false' }};
+var TEAM_KEY = 'klaudusia_team';
+var MEMBER_KEY = 'klaudusia_member';
+var COLOR_KEY = 'klaudusia_color';
+
+// Auto-join from QR URL params: ?t=Team%20Pink&c=red
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var team = params.get('t');
+  var color = params.get('c');
+  if (team) {
+    localStorage.setItem(TEAM_KEY, team);
+    if (!localStorage.getItem(MEMBER_KEY)) {
+      localStorage.setItem(MEMBER_KEY, 'Captain_' + Date.now());
+    }
+  }
+  if (color) {
+    var displayColor = color === 'blue' ? 'blue' : 'pink';
+    localStorage.setItem(COLOR_KEY, displayColor);
+  }
+})();
 
 function showToast(msg, type) {
   var t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast ' + type;
+  t.textContent = msg; t.className = 'toast show ' + type;
   setTimeout(function(){ t.className = 'toast'; }, 4000);
 }
 
 function previewPhoto(input) {
-  if (input.files && input.files[0]) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var img = document.getElementById('photo-preview');
-      var box = document.getElementById('photo-upload-box');
-      img.src = e.target.result;
-      img.style.display = 'block';
-      box.classList.add('has-photo');
-      box.querySelector('.label').textContent = 'Photo taken!';
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var box = document.getElementById('photo-box');
+    var preview = document.getElementById('photo-preview');
+    preview.src = e.target.result;
+    box.classList.add('has-photo');
+  };
+  reader.readAsDataURL(input.files[0]);
 }
 
-async function markComplete() {
+async function submitMission() {
   var team = localStorage.getItem(TEAM_KEY);
   if (!team) {
     showToast('Join the hunt first! Go Back to Hunt and pick a team.', 'error');
@@ -151,16 +325,17 @@ async function markComplete() {
   }
 
   var photoInput = document.getElementById('photo-input');
-  if (photoInput.files.length === 0) {
-    showToast('Photo proof is REQUIRED. Take a photo first!', 'error');
-    var box = document.getElementById('photo-upload-box');
-    box.classList.add('missing');
-    setTimeout(function(){ box.classList.remove('missing'); }, 2000);
+  if (!photoInput.files || photoInput.files.length === 0) {
+    showToast('Photo proof is REQUIRED. Tap the camera box to take a photo!', 'error');
+    var box = document.getElementById('photo-box');
+    box.style.borderColor = 'var(--red)';
+    box.style.background = 'var(--red-bg)';
+    setTimeout(function(){ box.style.borderColor = ''; box.style.background = ''; }, 1500);
     return;
   }
 
-  var btn = document.getElementById('complete-btn');
-  btn.disabled = true; btn.textContent = 'Saving...';
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Uploading...';
 
   var f = new FormData();
   f.append('team', team);
@@ -172,25 +347,24 @@ async function markComplete() {
     var d = await r.json();
     if (d.correct) {
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
-      showToast('Mission complete! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
-      btn.textContent = 'Done! +' + d.earned + ' pts';
-      btn.style.background = 'rgba(110,231,183,0.15)';
-      btn.style.color = '#6ee7b7';
+      showToast('Done! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
 
-      var hintBox = document.getElementById('next-hint');
-      if (hintBox) { hintBox.style.borderColor = 'var(--green)'; hintBox.querySelector('.label').textContent = 'Next Destination'; }
+      btn.style.display = 'none';
+      var done = document.getElementById('done-badge');
+      done.classList.add('show');
 
       if (IS_LAST) {
         var wb = document.getElementById('winner-banner');
-        if (wb) wb.style.display = 'block';
+        if (wb) wb.classList.add('show');
       }
-      setTimeout(function(){ window.location.href = '/'; }, 2500);
+
+      setTimeout(function(){ window.location.href = '/'; }, 2000);
     } else {
-      btn.disabled = false; btn.textContent = 'Mark Mission Complete +' + BASE_POINTS + ' pts';
+      btn.disabled = false; btn.textContent = 'Complete Mission +' + BASE_POINTS + ' pts';
       showToast(d.error || 'Something went wrong.', 'error');
     }
   } catch(e) {
-    btn.disabled = false; btn.textContent = 'Mark Mission Complete +' + BASE_POINTS + ' pts';
+    btn.disabled = false; btn.textContent = 'Complete Mission +' + BASE_POINTS + ' pts';
     showToast('Network error. Try again.', 'error');
   }
 }

@@ -158,13 +158,19 @@ def index():
 @app.route('/unlock/<int:mission_id>')
 def unlock(mission_id):
     color = request.args.get('c', 'red')
+    team_name = request.args.get('t', '')
     missions = get_missions(color)
     mission = next((m for m in missions if m['id'] == mission_id), None)
     if not mission:
         return render_template('unlock_result.html', success=False, message="Mission not found.")
     next_mission = next((m for m in missions if m['id'] == mission_id + 1), None)
-    next_hint = next_mission.get('scan_hint', 'Find the next QR code!') if next_mission else None
+    next_hint = mission.get('next_hint')
+    if not next_hint and next_mission:
+        next_hint = next_mission.get('scan_hint', 'Find the next QR code!')
+    elif not next_hint:
+        next_hint = None
     return render_template('unlock.html', mission=mission, color=color,
+                         team_name=team_name,
                          base_points=BASE_POINTS, skip_penalty=SKIP_PENALTY,
                          next_hint=next_hint, is_last=next_mission is None,
                          timer_bonus_fast=TIMER_BONUS_FAST,

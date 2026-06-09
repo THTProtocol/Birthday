@@ -450,7 +450,7 @@ function markSaved(text) {
 function addMission() {
   var nextId = missions.length ? Math.max.apply(null, missions.map(function(m){ return m.id; })) + 1 : 1;
   var blank = {
-    id: nextId, title: '', location: '', task: '', scan_hint: '', hint: '', task_image: ''
+    id: nextId, title: '', location: '', task: '', scan_hint: '', next_hint: '', hint: '', task_image: ''
   };
   missions.push(blank);
   missionRecords.push({});
@@ -620,6 +620,11 @@ function render() {
             '<div class="char-count"><span id="scan-count-' + m.id + '">0</span> chars</div>' +
           '</div>' +
           '<div class="field">' +
+            '<label>Next Destination <span class="hint">(where next QR is hidden - shown on scan)</span></label>' +
+            '<input type="text" id="next-' + m.id + '" value="' + escapeHtml(m.next_hint||'') + '" placeholder="e.g. Go to the tunnel, check the bench" oninput="dirty()">' +
+            '<div class="char-count"><span id="next-count-' + m.id + '">0</span> chars</div>' +
+          '</div>' +
+          '<div class="field">' +
             '<label>Paid Hint <span class="hint">(exact spot, costs 3 pts)</span></label>' +
             '<input type="text" id="hint-' + m.id + '" value="' + escapeHtml(m.hint||'') + '" placeholder="Hint text" oninput="dirty()">' +
             '<div class="char-count"><span id="hint-count-' + m.id + '">0</span> chars</div>' +
@@ -667,7 +672,7 @@ function onFieldChange(id, el, field) {
 }
 
 function updateCounts(id) {
-  ['title','loc','task','scan','hint'].forEach(function(f){
+  ['title','loc','task','scan','next','hint'].forEach(function(f){
     var el = $(f + '-' + id);
     if (el) { var c = $(f + '-count-' + id); if (c) c.textContent = String(el.value.length); }
   });
@@ -730,6 +735,7 @@ async function saveAll() {
     original.location = $('loc-' + m.id).value;
     original.task = $('task-' + m.id).value;
     original.scan_hint = $('scan-' + m.id).value;
+    original.next_hint = $('next-' + m.id).value;
     original.hint = $('hint-' + m.id).value;
     original.task_image = $('img-' + m.id).value;
     missions[idx] = original;

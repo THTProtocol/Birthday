@@ -211,6 +211,13 @@
   <div class="empty" id="no-activity">No activity yet.</div>
 </div>
 
+<!-- Proof Gallery -->
+<div class="section">
+  <h2>Proof Gallery <span style="font-size:12px;color:var(--text-faint);font-weight:400">(click to enlarge)</span></h2>
+  <div id="proofs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;"></div>
+  <div class="empty" id="no-proofs">No photos submitted yet. Teams will upload proof for each mission.</div>
+</div>
+
 <div id="toast" class="toast"></div>
 <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')"><img id="lightbox-img" src=""></div>
 
@@ -362,6 +369,31 @@ async function loadState() {
     }
 
     document.getElementById('total-subs').textContent = events.length;
+
+    // Proof Gallery (from the same events data)
+    const proofsGrid = document.getElementById('proofs-grid');
+    const noProofs = document.getElementById('no-proofs');
+    proofsGrid.innerHTML = '';
+    const photoEvents = events.filter(e => e.photo);
+    if (photoEvents.length === 0) {
+      noProofs.style.display = 'block';
+      proofsGrid.style.display = 'none';
+    } else {
+      noProofs.style.display = 'none';
+      proofsGrid.style.display = 'grid';
+      photoEvents.forEach(e => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:var(--bg-deep);border:1px solid var(--border-standard);border-radius:8px;overflow:hidden;cursor:pointer;';
+        div.innerHTML = `
+          <img src="${e.photo}" style="width:100%;height:110px;object-fit:cover;display:block;" onclick="openPhoto('${e.photo}')">
+          <div style="padding:6px 8px;font-size:11px;">
+            <span style="color:var(--pink);font-weight:600;">${escHtml(e.team)}</span>
+            <span style="color:var(--text-faint);">#${e.mission}</span>
+            <span style="float:right;color:var(--accent);font-weight:600;">${e.points||0}pts</span>
+          </div>`;
+        proofsGrid.appendChild(div);
+      });
+    }
 
   } catch(e) { console.error(e); }
 }

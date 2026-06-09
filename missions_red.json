@@ -1,78 +1,106 @@
 {
-  "title": "Klaudusia's Birthday - Team Red",
+  "title": "Klaudusia's Birthday - Team Pink",
   "hint_cost": 3,
   "missions": [
     {
-      "hint": "The big bowl is the deepest one, closest to the fence. The QR is tucked into the seam where the concrete lip meets the metal coping  -  reach underneath from the outside edge.",
       "id": 1,
+      "title": "Skate Bowl Pose",
       "location": "Rabalder Park skate area",
+      "task": "Find the concrete skate bowls at Rabalder Park. Your entire team must strike a synchronized skater pose on the edge of a ramp. Action shot required - everyone off the ground? Legendary bonus.",
       "scan_hint": "Check under the lip of the big concrete bowl",
-      "task": "Find the concrete skate bowls at Rabalder Park. Your entire team must strike a synchronized skater pose on the edge of a ramp. Action shot required  -  everyone off the ground? Legendary bonus.",
-      "task_image": "",
-      "title": "Test Edit Title"
+      "next_hint": "Run to the old concrete factory walls. Look low near the colorful mural corner.",
+      "hint": "The big bowl is the deepest one, closest to the fence. The QR is tucked into the seam where the concrete lip meets the metal coping.",
+      "task_image": ""
     },
     {
-      "hint": "Face the big psychedelic owl mural. Walk 3 meters to the left. The QR is at shin height on the concrete pillar  -  you'll need to crouch.",
       "id": 2,
+      "title": "Factory Face-Off",
       "location": "Old concrete factory walls, central",
+      "task": "Race to the old concrete walls. Find the wildest piece of graffiti or mural. Recreate it with your bodies - same poses, same expressions. Take a side-by-side photo.",
       "scan_hint": "Low on the wall near the colorful mural corner",
-      "task": "Race to the old concrete walls. Find the wildest piece of graffiti or mural. Recreate it with your bodies  -  same poses, same expressions. Take a side-by-side photo. First team to post it in chat wins the speed bonus.",
-      "task_image": "",
-      "title": "Factory Face-Off"
+      "next_hint": "Head to Skrammellegepladsen. Look inside a tire near the back fence.",
+      "hint": "Face the big psychedelic owl mural. Walk 3 meters left. The QR is at shin height on the concrete pillar.",
+      "task_image": ""
     },
     {
-      "hint": "The big tractor tire against the chain-link fence  -  not the stack of car tires. Look inside it, the QR is taped to the inner wall on the fence side.",
       "id": 3,
+      "title": "Skrammel Challenge",
       "location": "Skrammellegepladsen (junkyard playground)",
+      "task": "The junk playground! Build something that represents Klaudusia using ONLY found materials here - tires, wood, pipes, ropes. Spell her name, make a crown, build a throne. Photo of your creation required.",
       "scan_hint": "Inside a tire near the back fence",
-      "task": "The junk playground! Build something that represents Klaudusia using ONLY found materials here  -  tires, wood, pipes, ropes. Spell her name, make a crown, build a throne. Photo of your creation required.",
-      "task_image": "",
-      "title": "Skrammel Challenge"
+      "next_hint": "Sprint to the Ragnarock museum entrance. Check behind the right-side pillar.",
+      "hint": "The big tractor tire against the chain-link fence. Look inside it, QR is taped to the inner wall on the fence side.",
+      "task_image": ""
     },
     {
-      "hint": "Standing at the main entrance looking at the doors, the right-side concrete pillar. Go around to the back side of it  -  the QR is at chest height, facing the building wall.",
       "id": 4,
+      "title": "Rock Star Moment",
       "location": "Ragnarock museum entrance",
+      "task": "Your team is headlining Ragnarock TONIGHT. Pose as a legendary rock band on the museum steps. Someone must be the lead singer (mic pose), someone on air guitar, someone on drums. No actual instruments - pure air performance.",
       "scan_hint": "Behind the right-side pillar at the museum entrance",
-      "task": "Your team is headlining Ragnarock TONIGHT. Pose as a legendary rock band on the museum steps. Someone must be the lead singer (mic pose), someone on air guitar, someone on drums. No actual instruments  -  pure air performance.",
-      "task_image": "",
-      "title": "Rock Star Moment"
+      "next_hint": "Find the mini Orange Stage. Check under the stage edge, stage right.",
+      "hint": "Standing at the main entrance, the right-side concrete pillar. Go around to the back side - QR at chest height facing the building wall.",
+      "task_image": ""
     },
     {
-      "hint": "Facing the stage from the audience: go to the right-hand edge. Crouch down. The QR is stuck to the underside of the stage, about 30cm in from the edge.",
       "id": 5,
-      "location": "Orange Scene replica / open stage area",
+      "title": "The Orange Stage",
+      "location": "Orange Stage replica / open stage area",
+      "task": "Find the mini Orange Stage. Your team must perform a 30-second Happy Birthday in the most dramatic way possible. Opera? Death metal? Whisper-rap? The stage is yours. Film it.",
       "scan_hint": "Under the stage edge, stage right",
-      "task": "Find the mini Orange Stage. Your team must perform a 30-second 'Happy Birthday' in the most dramatic way possible. Opera? Death metal? Whisper-rap? The stage is yours. Film it.",
-      "task_image": "",
-      "title": "The Orange Stage"
+      "next_hint": "Go to the art installations area. Find the tallest sculpture near Hal 12. Check at its base.",
+      "hint": "Facing the stage from audience: go to right-hand edge, crouch down. QR stuck to underside of stage about 30cm in from edge.",
+      "task_image": ""
     },
     {
-      "hint": "It's the tall rusted-metal figure  -  not the short stone ones. Walk around it clockwise. The QR is stuck to the back of the left concrete footing, about ankle height.",
       "id": 6,
+      "title": "Creature of Musicon",
       "location": "Art installations / sculptures area",
+      "task": "Find any sculpture, art piece, or weird object. Your team must become a 5-headed creature with it - everyone physically connected (arms linked, stacked, hugging). The weirder the creature, the better. Photo required.",
       "scan_hint": "At the base of the tallest sculpture near Hal 12",
-      "task": "Find any sculpture, art piece, or weird object in . Your team must become a 5-headed creature with it  -  everyone physically connected (arms linked, stacked, hugging). The weirder the creature, the better.",
-      "task_image": "",
-      "title": "Creature of"
+      "next_hint": "Race to the central square. Check behind the community notice board.",
+      "hint": "The tall rusted-metal figure - not the short stone ones. Walk around clockwise. QR stuck to back of left concrete footing at ankle height.",
+      "task_image": ""
     },
     {
-      "hint": "The wooden notice board near the bike racks. Reach behind the right edge  -  the QR is taped flat against the back panel, not visible from the front.",
       "id": 7,
-      "location": " square / central meeting point",
+      "title": "Time Capsule",
+      "location": "Musicon square / central meeting point",
+      "task": "As a team, record a 20-second video message to Klaudusia from the future - 10 years from now. What do you hope she remembers about today? What do you wish for her? Be sincere, be funny, be you.",
       "scan_hint": "Tucked behind the community notice board in the square",
-      "task": "As a team, record a 20-second video message to Klaudusia from the future  -  10 years from now. What do you hope she remembers about today? What do you wish for her? Be sincere, be funny, be you.",
-      "task_image": "",
-      "title": "Time Capsule"
+      "next_hint": "Head to the green area with rain gardens. Find the largest planter box.",
+      "hint": "The wooden notice board near the bike racks. Reach behind the right edge - QR taped flat against the back panel.",
+      "task_image": ""
     },
     {
-      "hint": "Look under the table or bench where the cake is set up. The QR is on the UNDERSIDE of the seating surface  -  you have to feel for it.",
       "id": 8,
-      "location": " final gathering spot",
-      "scan_hint": "Hidden at the final gathering spot  -  near the cake",
-      "task": "Using ONLY found natural objects (nothing bought, nothing picked from live plants  -  sticks, stones, fallen leaves), create a gift for Klaudusia. Spell her name. Build a crown. Make a portrait. Then find the Gamemaster to present it!",
-      "task_image": "",
-      "title": "The Birthday Offering"
+      "title": "The Green Labyrinth",
+      "location": "Rain gardens / green area",
+      "task": "Find the planted rain gardens and winding paths. Your team must navigate the paths blindfolded - one person guides, the rest follow with eyes closed. Record a 15-second video. The guide must use only absurd directions ('two penguin steps left, now waddle forward').",
+      "scan_hint": "Under the largest planter box in the rain garden",
+      "next_hint": "Go to the tunnel under the railway. Look for the QR at the midpoint bend.",
+      "hint": "The long rectangular planter with tall grasses. Lie on your back, look up at underside of wooden rim. QR on inner lip, about a meter from left end.",
+      "task_image": ""
+    },
+    {
+      "id": 9,
+      "title": "Tunnel Symphony",
+      "location": "Bike/pedestrian tunnel under the railway",
+      "task": "Find the long tunnel under the tracks. Your team must create a spontaneous song about Klaudusia using the tunnel's natural echo. Clap, stomp, sing, beatbox - use the acoustics. Record 20 seconds. Bonus if strangers join in.",
+      "scan_hint": "In the middle of the tunnel, on the wall at the bend",
+      "next_hint": "Final stop! Go to the gathering spot. Find the QR near the cake table.",
+      "hint": "Walk to the midpoint where the tunnel curves. QR on left wall (walking toward green area), tucked into recess between two concrete panels at chest height.",
+      "task_image": ""
+    },
+    {
+      "id": 10,
+      "title": "The Birthday Offering",
+      "location": "Final gathering spot",
+      "task": "Using ONLY found natural objects (sticks, stones, fallen leaves - nothing bought, nothing picked from live plants), create a gift for Klaudusia. Spell her name. Build a crown. Make a portrait. Then find the Gamemaster to present it! This is your final mission.",
+      "scan_hint": "Hidden at the final gathering spot - near the cake",
+      "next_hint": "Congratulations! Race back to the admin to check the final leaderboard!",
+      "hint": "Look under the table or bench where the cake is set up. QR is on the UNDERSIDE of the seating surface - you have to feel for it.",
+      "task_image": ""
     }
   ]
 }
