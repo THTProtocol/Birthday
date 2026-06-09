@@ -2,7 +2,7 @@
  RINGPARKEN HUNT  -  DEPLOYMENT & RUN GUIDE
 ======================================================================
 
-LIVE (current): https://otherwise-low-chambers-prague.trycloudflare.com/
+LIVE (current): https://innovations-dover-trailer-wireless.trycloudflare.com/
 (The specific gave-prizes-joy-detected was a prior tunnel name; quick tunnels
 rotate. Regenerate QRs + restart cloudflared + server to publish updates.)
 
