@@ -14,7 +14,7 @@ Then visit:
 - Players: http://localhost:8080/
 - Admin: http://localhost:8080/admin (password: cakeoclock2026)
 
-**Live instance (current tunnel):** https://innovations-dover-trailer-wireless.trycloudflare.com/
+**Live instance (current tunnel):** https://constant-phoenix-ends-priest.trycloudflare.com/
 (Quick tunnels rotate names on restart; run `python generate_qr.py YOUR_URL` after each new tunnel.)
 
 ## Deployment
