@@ -877,21 +877,43 @@ function loadAll() {
           $('cur-task').textContent = m.task || '';
           startTimer(times, cur);
           $('dash-photo-box').style.display = '';
-          $('btn-submit-proof').style.display = 'none';  // shown after preview attach
+          $('btn-submit-proof').style.display = 'none';
           var skp = $('skip-btn');
           if (skp) skp.style.display = '';
+          // Reset photo box cleanly on new current mission (only when unlocked)
+          if (cur !== lastCurrentMission) {
+            var pbox = $('dash-photo-box');
+            if (pbox) {
+              pbox.classList.remove('has-photo');
+              var pprev = $('dash-photo-preview');
+              if (pprev && pprev.tagName === 'VIDEO') {
+                var newImg = document.createElement('img');
+                newImg.id = 'dash-photo-preview';
+                newImg.className = 'photo-preview';
+                newImg.src = '';
+                newImg.style.display = 'none';
+                pprev.parentNode.replaceChild(newImg, pprev);
+              } else if (pprev) {
+                pprev.style.display = 'none';
+                pprev.src = '';
+              }
+              var pl = pbox.querySelector('.photo-label');
+              if (pl) pl.textContent = '📸 Attach Photo Proof';
+              var ps = pbox.querySelector('.photo-sub');
+              if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
+              var pin = document.getElementById('dash-photo-input');
+              if (pin) pin.value = '';
+            }
+            lastCurrentMission = cur;
+          }
         } else {
           $('cur-task').innerHTML = '<em>Scan the QR code at the location shown in the directions above to unlock this mission and start the timer.</em>';
           $('dash-photo-box').style.display = 'none';
           $('btn-submit-proof').style.display = 'none';
           var skp = $('skip-btn');
           if (skp) skp.style.display = 'none';
-        }
-        // lastCurrentMission reset can stay for photo state if needed, but unlocked logic now enforces scan for task/buttons
-        if (cur !== lastCurrentMission) {
           lastCurrentMission = cur;
         }
-        // (for same cur on poll/refresh: leave any in-progress photo attach state intact; directions handled by persistent)
 
         // scan-hint-box stays as non-blocking reminder (small, secondary — does NOT gate the main controls)
         $('timer-bar').style.display = '';
