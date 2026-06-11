@@ -2,10 +2,57 @@
 """Klaudusia's Birthday Scavenger Hunt  -  Urban Hunters Edition
 QR-to-task image flow with bonus cards, timing, and competitive mechanics."""
 
-import os, json, uuid, time, re, random
+import os, json, uuid, time, re, random, io
 from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory
+
+# Google Drive upload (optional - requires service account JSON key)
+GDRIVE_FOLDER_ID = os.environ.get('GDRIVE_FOLDER_ID', '1EJQGupy6v2fqWdyVXoMurvSMoy0USEkI')
+GDRIVE_CREDENTIALS_FILE = os.environ.get('GDRIVE_CREDENTIALS_FILE', '')
+_gdrive_service = None
+
+def _get_gdrive_service():
+    global _gdrive_service
+    if _gdrive_service is not None:
+        return _gdrive_service
+    if not GDRIVE_CREDENTIALS_FILE or not os.path.exists(GDRIVE_CREDENTIALS_FILE):
+        return None
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        creds = service_account.Credentials.from_service_account_file(
+            GDRIVE_CREDENTIALS_FILE,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        _gdrive_service = build('drive', 'v3', credentials=creds)
+        return _gdrive_service
+    except Exception as e:
+        print(f'Google Drive init failed: {e}')
+        return None
+
+def upload_to_gdrive(filepath, filename, team, mission_id):
+    """Upload a file to Google Drive folder. Returns drive URL or None."""
+    service = _get_gdrive_service()
+    if not service:
+        return None
+    try:
+        from googleapiclient.http import MediaFileUpload
+        file_metadata = {
+            'name': f'{team}_mission{mission_id}_{filename}',
+            'parents': [GDRIVE_FOLDER_ID]
+        }
+        media = MediaFileUpload(filepath, resumable=True)
+        uploaded = service.files().create(
+            body=file_metadata, media_body=media, fields='id,webViewLink'
+        ).execute()
+        drive_id = uploaded.get('id')
+        drive_url = uploaded.get('webViewLink') or f'https://drive.google.com/file/d/{drive_id}/view'
+        return drive_url
+    except Exception as e:
+        print(f'Google Drive upload failed: {e}')
+        return None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'klaudusia-bday-' + uuid.uuid4().hex[:12])
@@ -121,8 +168,11 @@ def load_state():
 
 
 def save_state(state):
-    with open(STATE_FILE, 'w') as f:
+    # Atomic write: write to temp file, then rename to prevent corruption from concurrent writes
+    tmp = STATE_FILE.with_suffix('.tmp')
+    with open(tmp, 'w') as f:
         json.dump(state, f, indent=2, default=str)
+    tmp.replace(STATE_FILE)
 
 
 def get_opponent_color(color):
@@ -312,14 +362,21 @@ def submit():
 
     # ── Photo requirement ─────────────────────────────────────
     photo_url = None
+    drive_url = None
     if 'photo' in request.files:
         file = request.files['photo']
         if file.filename:
             safe_team = re.sub(r'[^\w\-]', '_', team)[:20]
             ext = Path(file.filename).suffix or '.jpg'
             filename = f"{safe_team}_{mission_id}_{int(time.time())}{ext}"
-            (UPLOAD_DIR / filename).write_bytes(file.read())
+            filepath = UPLOAD_DIR / filename
+            filepath.write_bytes(file.read())
             photo_url = f"/uploads/{filename}"
+            # Also upload to Google Drive (non-blocking, best-effort)
+            try:
+                drive_url = upload_to_gdrive(str(filepath), filename, team, mission_id)
+            except Exception:
+                pass
 
     if not photo_url:
         return jsonify({'error': 'Photo proof is required to complete this mission.'}), 400

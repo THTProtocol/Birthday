@@ -270,21 +270,22 @@
     <span class="mission-loc" id="cur-location"></span>
     <div class="task-box" id="cur-task"></div>
 
-    <!-- Photo Upload on Dashboard -->
+    <!-- Photo Upload on Dashboard - auto-uploads on select -->
     <div class="photo-upload-box" id="dash-photo-box" onclick="document.getElementById('dash-photo-input').click()">
       <input type="file" id="dash-photo-input" accept="image/*,video/*" onchange="previewDashPhoto(this)">
       <span class="photo-label">&#x1F4F8; Attach Photo or Video Proof</span>
-      <span class="photo-sub">Take new or choose from your gallery. Required to complete.</span>
+      <span class="photo-sub">Select a file - it uploads automatically. Required to complete.</span>
       <img class="photo-preview" id="dash-photo-preview" src="" alt="">
     </div>
+
+    <!-- Upload status shown here during auto-upload -->
+    <div id="upload-status" style="display:none; text-align:center; padding:8px; font-size:13px; color:var(--green); font-weight:600;">Uploading...</div>
 
     <!-- Next directions revealed after photo/video uploaded -->
     <div class="next-dest" id="next-dest" style="display:none;">
       <div class="label">Directions to the Next QR Code</div>
       <div class="clue" id="next-clue-text"></div>
     </div>
-
-    <button class="btn btn-submit-proof" id="btn-submit-proof" onclick="submitProof()">Submit Proof &amp; Complete Mission</button>
 
     <div class="timer-bar" id="timer-bar">
       <div class="timer-label">Mission Timer</div>
@@ -567,7 +568,6 @@ function previewDashPhoto(input) {
         if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(video, oldPreview);
         else box.appendChild(video);
       } else {
-        // For images: replace element if old preview was a video
         if (oldPreview && oldPreview.tagName === 'VIDEO') {
           var img = document.createElement('img');
           img.id = 'dash-photo-preview';
@@ -582,15 +582,63 @@ function previewDashPhoto(input) {
       }
       box.classList.add('has-photo');
       var label = box.querySelector('.photo-label');
-      if (label) label.textContent = file.type.startsWith('video/') ? 'Video attached!' : 'Photo attached!';
-      $('btn-submit-proof').style.display = 'block';
-      $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
-      $('btn-submit-proof').disabled = false;
+      if (label) label.textContent = file.type.startsWith('video/') ? 'Video attached - uploading...' : 'Photo attached - uploading...';
 
       saveMediaToGallery(file);
+
+      // Auto-upload immediately on file select
+      autoUploadProof(file);
     };
     reader.readAsDataURL(file);
   }
+}
+
+function autoUploadProof(file) {
+  var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
+  var statusEl = $('upload-status');
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Uploading...'; }
+  var f = new FormData();
+  f.append('team', myTeam); f.append('mission_id', curId); f.append('photo', file);
+  fetch('/api/submit', {method:'POST', body:f}).then(function(r){
+    if (!r.ok) { return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+(t||r.statusText)); }); }
+    return r.json();
+  }).then(function(d){
+    if (d.correct) {
+      var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
+      showToast('Uploaded! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      if (statusEl) { statusEl.textContent = 'Upload complete!'; statusEl.style.color = 'var(--green)'; }
+      // Show directions
+      persistentNextDirections = window.currentNextHint;
+      var nd = document.getElementById('next-dest');
+      if (nd) {
+        nd.style.display = 'block';
+        var clue = document.getElementById('next-clue-text');
+        if (clue) clue.textContent = persistentNextDirections || 'Find the next QR code at the location described after the previous task!';
+      }
+      // Hide old submit button if it exists
+      var sbtn = $('btn-submit-proof');
+      if (sbtn) { sbtn.style.display = 'none'; }
+      // Reset photo box
+      $('dash-photo-box').classList.remove('has-photo');
+      var pprev = $('dash-photo-preview');
+      if (pprev) { pprev.style.display = 'none'; pprev.src = ''; }
+      var pin = document.getElementById('dash-photo-input');
+      if (pin) pin.value = '';
+      lastCurrentMission = -1;
+      setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 3000);
+      loadAll();
+    } else {
+      if (statusEl) { statusEl.textContent = 'Error: ' + (d.error || 'upload failed'); statusEl.style.color = 'var(--red)'; }
+      showToast(d.error || 'Upload failed. Try again.', 'error');
+      setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 4000);
+    }
+  }).catch(function(e){
+    if (statusEl) { statusEl.textContent = 'Network error - retrying...'; statusEl.style.color = 'var(--red)'; }
+    showToast('Network error: ' + (e.message || e) + '. Retrying...', 'error');
+    console.error('autoUploadProof error', e);
+    // Retry once after 2 seconds
+    setTimeout(function(){ autoUploadProof(file); }, 2000);
+  });
 }
 
 // Helper: save photo or video to the user's device gallery (downloads + tries Web Share for "Save to Photos")
@@ -848,6 +896,13 @@ function loadAll() {
         // scan-hint-box stays as non-blocking reminder (small, secondary — does NOT gate the main controls)
         $('timer-bar').style.display = '';
         $('scan-hint-box').style.display = '';
+
+        // Timer always visible: show 00:00 when locked, running when unlocked
+        if (unlocked) {
+          startTimer(times, cur);
+        } else {
+          $('timer-display').textContent = '00:00';
+        }
 
         // store next hint for reveal after photo upload (for current task)
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
