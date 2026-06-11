@@ -381,12 +381,9 @@ function previewPhoto(input) {
     }
     box.classList.add('has-photo');
 
-    // Once media attached on mobile, reveal the "next QR directions"
-    var nd = document.getElementById('next-dest');
-    if (nd) nd.classList.add('visible');
-
-    // after setting preview + has-photo + revealing next-dest, call saveMediaToGallery(file) immediately
-    // (for consistency with dashboard; auto save captured photo/video to device gallery)
+    // after setting preview + has-photo, call saveMediaToGallery(file) immediately
+    // (auto save captured photo/video to device gallery)
+    // NOTE: next directions are revealed ONLY after successful submit (see submitMission)
     saveMediaToGallery(file);
   };
   reader.readAsDataURL(file);
@@ -451,9 +448,15 @@ async function submitMission() {
       var done = document.getElementById('done-badge');
       done.classList.add('show');
 
-      // Make sure next directions are visible after submit
+      // Reveal next directions ONLY after upload (and since we scanned to reach this page, the condition is met)
       var nd = document.getElementById('next-dest');
       if (nd) nd.classList.add('visible');
+
+      // Also set global persistent so it appears if user returns to the main dashboard
+      var clueEl = document.querySelector('#next-dest .clue');
+      if (clueEl) {
+        persistentNextDirections = clueEl.textContent.trim();
+      }
 
       if (IS_LAST) {
         var wb = document.getElementById('winner-banner');

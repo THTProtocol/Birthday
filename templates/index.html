@@ -588,14 +588,6 @@ function previewDashPhoto(input) {
       $('btn-submit-proof').disabled = false;
 
       saveMediaToGallery(file);
-
-      var nd = document.getElementById('next-dest');
-      if (nd) {
-        nd.style.display = 'block';
-        var clue = document.getElementById('next-clue-text');
-        if (clue) clue.textContent = window.currentNextHint || 'Find the next QR code at the location described after the previous task!';
-        persistentNextDirections = clue ? clue.textContent : window.currentNextHint;
-      }
     };
     reader.readAsDataURL(file);
   }
@@ -642,6 +634,11 @@ function submitProof() {
     return r.json();
   }).then(function(d){
     if (d.correct) {
+      // Set directions to the next only AFTER successful upload for this mission
+      // (and the mission was reached via scan or as current after previous).
+      // This makes directions appear only after scan + upload for the completed mission.
+      persistentNextDirections = window.currentNextHint;
+
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
       showToast('Mission complete! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
       // Reset photo UI for current mission
