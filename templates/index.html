@@ -768,20 +768,20 @@ function loadAll() {
         $('current-mission-card').classList.remove('hidden');
         $('finished-card').classList.add('hidden');
 
-        // Only show full task and start timer if the QR has been scanned (timer started on scan)
+        // Show full task, timer (if started), and easy buttons (photo box + submit) for the current mission.
+        // Timer starts on create for #1 or on submit of previous (so 2nd/3rd+ have timer + buttons like the first).
+        // Scan QR is still used to "arrive" at location and for in-app unlock page flow.
         var times = ts.mission_times || {};
-        var unlocked = String(cur) in times;
-        if (unlocked) {
-          $('cur-task').textContent = m.task || '';
+        $('cur-task').textContent = m.task || '';
+        if (String(cur) in times) {
           startTimer(ts.mission_times, cur);
-          $('dash-photo-box').style.display = '';
-          $('btn-submit-proof').style.display = 'none';  // shown in preview
         } else {
-          $('cur-task').innerHTML = '<em>Scan the QR code at the location shown in the directions above to unlock this mission and start the timer.</em>';
-          // Do not start timer yet - waits for scan
-          $('dash-photo-box').style.display = 'none';
-          $('btn-submit-proof').style.display = 'none';
+          $('timer-display').textContent = '00:00';
         }
+        $('dash-photo-box').style.display = '';
+        $('btn-submit-proof').style.display = 'none';  // shown after preview attach
+        // Keep scan box visible as reminder for the physical QR at the location
+        // (the scan-hint-box is always in the HTML for current)
 
         // store next hint for reveal after photo upload
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
