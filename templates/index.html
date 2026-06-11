@@ -367,11 +367,11 @@
 .photo-upload-box.has-photo .photo-sub { display:none; }
 
 .btn-submit-proof {
-  display:none; background:var(--green); color:#0f1011;
+  background:var(--green); color:#0f1011;
   box-shadow:0 2px 12px var(--green-glow); font-weight:600;
-  font-size:15px; padding:14px; margin-top:10px;
+  font-size:16px; padding:16px; margin-top:14px;
 }
-.btn-submit-proof:active:not(:disabled) { background:#34d399; }
+.btn-submit-proof:active:not(:disabled) { background:#34d399; transform:scale(0.97); }
 
 @media (max-width:380px) {
   .glass-card, .step-card { padding:20px 14px; }
@@ -563,18 +563,22 @@ function previewDashPhoto(input) {
         video.style.maxHeight = '200px';
         video.style.width = '100%';
         video.style.borderRadius = 'var(--radius-md)';
+        video.style.display = 'block';
         if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(video, oldPreview);
         else box.appendChild(video);
       } else {
-        if (oldPreview.tagName === 'VIDEO') {
+        // For images: replace element if old preview was a video
+        if (oldPreview && oldPreview.tagName === 'VIDEO') {
           var img = document.createElement('img');
           img.id = 'dash-photo-preview';
           img.className = 'photo-preview';
-          if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(img, oldPreview);
-          else box.appendChild(img);
-          oldPreview = img;
+          img.style.display = 'block';
+          img.src = e.target.result;
+          oldPreview.parentNode.replaceChild(img, oldPreview);
+        } else {
+          oldPreview.src = e.target.result;
+          oldPreview.style.display = 'block';
         }
-        oldPreview.src = e.target.result;
       }
       box.classList.add('has-photo');
       var label = box.querySelector('.photo-label');
@@ -583,11 +587,8 @@ function previewDashPhoto(input) {
       $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
       $('btn-submit-proof').disabled = false;
 
-      // after setting preview and has-photo + showing submit btn, call saveMediaToGallery(file) immediately
-      // (per spec: auto save captured photo/video to device gallery via download + navigator.share)
       saveMediaToGallery(file);
 
-      // reveal directions to next spot once photo/video is uploaded
       var nd = document.getElementById('next-dest');
       if (nd) {
         nd.style.display = 'block';
@@ -824,23 +825,28 @@ function loadAll() {
         }
 
         // Reset photo box state (remove has-photo, clear preview, reset labels) ONLY when a *new* current mission renders.
-        // (ensures later tasks have identical clean "Attach Photo or Video Proof" box + submit after attach + skip + timer bar)
         if (cur !== lastCurrentMission) {
           var pbox = $('dash-photo-box');
           if (pbox) {
             pbox.style.display = '';
             pbox.classList.remove('has-photo');
+            // Replace any video element back to the original <img> for clean state
             var pprev = $('dash-photo-preview');
-            if (pprev) {
+            if (pprev && pprev.tagName === 'VIDEO') {
+              var newImg = document.createElement('img');
+              newImg.id = 'dash-photo-preview';
+              newImg.className = 'photo-preview';
+              newImg.src = '';
+              newImg.style.display = 'none';
+              pprev.parentNode.replaceChild(newImg, pprev);
+            } else if (pprev) {
               pprev.style.display = 'none';
               pprev.src = '';
-              if (pprev.tagName === 'VIDEO') pprev.src = '';
             }
             var pl = pbox.querySelector('.photo-label');
-            if (pl) pl.textContent = 'Attach Photo or Video Proof';
+            if (pl) pl.textContent = '📸 Attach Photo Proof';
             var ps = pbox.querySelector('.photo-sub');
             if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
-            // also reset the file input for clean state on new mission
             var pin = document.getElementById('dash-photo-input');
             if (pin) pin.value = '';
           }
@@ -856,7 +862,9 @@ function loadAll() {
         }
         // (for same cur on poll/refresh: leave any in-progress photo attach state intact; directions handled by persistent)
 
-        // scan-hint-box (the "Scan the QR at this location" reminder) stays as a small non-blocking note but must not interfere with or hide the main easy buttons (photo box, submit-after-attach, skip, timer).
+        // scan-hint-box stays as non-blocking reminder (small, secondary — does NOT gate the main controls)
+        $('timer-bar').style.display = '';
+        $('scan-hint-box').style.display = '';
 
         // store next hint for reveal after photo upload (for current task)
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
