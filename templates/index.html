@@ -272,9 +272,9 @@
 
     <!-- Photo Upload on Dashboard -->
     <div class="photo-upload-box" id="dash-photo-box" onclick="document.getElementById('dash-photo-input').click()">
-      <input type="file" id="dash-photo-input" accept="image/*,video/*" capture="environment" onchange="previewDashPhoto(this)">
-      <span class="photo-label">&#x1F4F8; Attach Photo Proof</span>
-      <span class="photo-sub">Any teammate can upload. Required to complete.</span>
+      <input type="file" id="dash-photo-input" accept="image/*,video/*" onchange="previewDashPhoto(this)">
+      <span class="photo-label">&#x1F4F8; Attach Photo or Video Proof</span>
+      <span class="photo-sub">Take new or choose from your gallery. Required to complete.</span>
       <img class="photo-preview" id="dash-photo-preview" src="" alt="">
     </div>
 
@@ -877,9 +877,9 @@ function loadAll() {
               pprev.src = '';
             }
             var pl = pbox.querySelector('.photo-label');
-            if (pl) pl.textContent = '📸 Attach Photo Proof';
+            if (pl) pl.textContent = '📸 Attach Photo or Video Proof';
             var ps = pbox.querySelector('.photo-sub');
-            if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
+            if (ps) ps.textContent = 'Take new or choose from your gallery. Required to complete.';
             var pin = document.getElementById('dash-photo-input');
             if (pin) pin.value = '';
           }
