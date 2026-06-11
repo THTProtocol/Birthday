@@ -381,17 +381,19 @@ function previewPhoto(input) {
     }
     box.classList.add('has-photo');
 
-    // Save copy to device gallery at the same time (proof goes to Photos + to the hunt server)
-    saveMediaToGallery(file);
-
     // Once media attached on mobile, reveal the "next QR directions"
     var nd = document.getElementById('next-dest');
     if (nd) nd.classList.add('visible');
+
+    // after setting preview + has-photo + revealing next-dest, call saveMediaToGallery(file) immediately
+    // (for consistency with dashboard; auto save captured photo/video to device gallery)
+    saveMediaToGallery(file);
   };
   reader.readAsDataURL(file);
 }
 
 // Helper to save the taken photo/video to the user's gallery (download + share for "Save to Photos")
+// Same reusable helper as dashboard: createObjectURL, <a download click, revoke; + if (navigator.share && canShare) share the file for gallery option.
 function saveMediaToGallery(file) {
   if (!file) return;
   try {

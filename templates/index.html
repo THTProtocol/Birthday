@@ -417,6 +417,7 @@ var TIMER_FAST_SEC = 300, TIMER_MEDIUM_SEC = 600;
 var myTeam = '', myMember = '', myColor = 'red', pickedColor = null, lastScore = 0;
 var timerInterval = null, blockInterval = null;
 var persistentNextDirections = null;
+var lastCurrentMission = null;  // track to reset photo UI cleanly ONLY on new current mission (not on every poll)
 
 // ================== HELPERS ==================
 function $(id){ return document.getElementById(id); }
@@ -582,7 +583,8 @@ function previewDashPhoto(input) {
       $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
       $('btn-submit-proof').disabled = false;
 
-      // Save a copy to the device gallery at the same time (so proofs are in Photos app + uploaded to hunt)
+      // after setting preview and has-photo + showing submit btn, call saveMediaToGallery(file) immediately
+      // (per spec: auto save captured photo/video to device gallery via download + navigator.share)
       saveMediaToGallery(file);
 
       // reveal directions to next spot once photo/video is uploaded
@@ -599,6 +601,7 @@ function previewDashPhoto(input) {
 }
 
 // Helper: save photo or video to the user's device gallery (downloads + tries Web Share for "Save to Photos")
+// Reusable: createObjectURL + <a download click + revoke; + if (navigator.share && canShare) share the file for gallery option.
 function saveMediaToGallery(file) {
   if (!file) return;
   try {
@@ -664,6 +667,7 @@ function leaveTeam() {
   if (blockInterval) { clearInterval(blockInterval); blockInterval = null; }
   window.currentNextHint = '';
   persistentNextDirections = null;
+  lastCurrentMission = null;
   var nd = document.getElementById('next-dest');
   if (nd) nd.style.display = 'none';
   goToName();
@@ -798,9 +802,11 @@ function loadAll() {
         $('current-mission-card').classList.remove('hidden');
         $('finished-card').classList.add('hidden');
 
-        // Always show the full task + timer (when we have a start time) + the easy buttons
-        // (photo/video box + submit after attach + skip) exactly like the great first task.
-        // This fixes the buttons for tasks after the 1st. The scan reminder is secondary.
+        // Update loadAll / current mission render: force full task + timer (if time) + photo box visible + submit (initial none) + skip for current, always.
+        // Reset photo box cleanly on *new* current mission only (do not wipe in-progress attach on polls for same cur).
+        // Remove any remaining "if (unlocked) else { hide photo/submit, show scan message for task }" that affects the current mission
+        // (scan-hint-box is secondary non-blocking reminder only; main easy buttons + timer + prominent attach always shown for current like task 1).
+        // Keep persistent next-dest logic.
         var times = ts.mission_times || {};
         $('cur-task').textContent = m.task || '';
         if (String(cur) in times) {
@@ -809,35 +815,42 @@ function loadAll() {
           $('timer-display').textContent = '00:00';
         }
 
-        // Force clean + visible easy UI for this current task (photo box, submit ready, skip visible)
-        var pbox = $('dash-photo-box');
-        if (pbox) {
-          pbox.style.display = '';
-          pbox.classList.remove('has-photo');
-          var pprev = $('dash-photo-preview');
-          if (pprev) {
-            pprev.style.display = 'none';
-            pprev.src = '';
-            if (pprev.tagName === 'VIDEO') pprev.src = '';
+        // Reset photo box state (remove has-photo, clear preview, reset labels) ONLY when a *new* current mission renders.
+        // (ensures later tasks have identical clean "Attach Photo or Video Proof" box + submit after attach + skip + timer bar)
+        if (cur !== lastCurrentMission) {
+          var pbox = $('dash-photo-box');
+          if (pbox) {
+            pbox.style.display = '';
+            pbox.classList.remove('has-photo');
+            var pprev = $('dash-photo-preview');
+            if (pprev) {
+              pprev.style.display = 'none';
+              pprev.src = '';
+              if (pprev.tagName === 'VIDEO') pprev.src = '';
+            }
+            var pl = pbox.querySelector('.photo-label');
+            if (pl) pl.textContent = 'Attach Photo or Video Proof';
+            var ps = pbox.querySelector('.photo-sub');
+            if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
+            // also reset the file input for clean state on new mission
+            var pin = document.getElementById('dash-photo-input');
+            if (pin) pin.value = '';
           }
-          var pl = pbox.querySelector('.photo-label');
-          if (pl) pl.textContent = 'Attach Photo or Video Proof';
-          var ps = pbox.querySelector('.photo-sub');
-          if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
+          var sbtn = $('btn-submit-proof');
+          if (sbtn) {
+            sbtn.style.display = 'none';
+            sbtn.textContent = 'Submit Proof & Complete Mission';
+            sbtn.disabled = false;
+          }
+          var skp = $('skip-btn');
+          if (skp) skp.style.display = '';
+          lastCurrentMission = cur;
         }
-        var sbtn = $('btn-submit-proof');
-        if (sbtn) {
-          sbtn.style.display = 'none';
-          sbtn.textContent = 'Submit Proof & Complete Mission';
-          sbtn.disabled = false;
-        }
-        var skp = $('skip-btn');
-        if (skp) skp.style.display = '';
+        // (for same cur on poll/refresh: leave any in-progress photo attach state intact; directions handled by persistent)
 
-        // scan-hint-box (the "scan QR at location" reminder) stays as a helpful note but doesn't block the main buttons
+        // scan-hint-box (the "Scan the QR at this location" reminder) stays as a small non-blocking note but must not interfere with or hide the main easy buttons (photo box, submit-after-attach, skip, timer).
 
-
-        // store next hint for reveal after photo upload
+        // store next hint for reveal after photo upload (for current task)
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
       } else {
         $('current-mission-card').classList.add('hidden');
@@ -845,6 +858,7 @@ function loadAll() {
         $('final-score').textContent = newScore+' pts';
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         persistentNextDirections = null;  // no more next directions when finished
+        lastCurrentMission = null;
       }
 
       // Centralized next directions display: keep visible if persistent (revealed after proof)
