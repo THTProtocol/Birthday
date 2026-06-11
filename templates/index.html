@@ -139,7 +139,7 @@
   .timer-bar .timer-label { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; margin-top:4px; }
   .timer-bar .timing-info { font-size:12px; color:var(--text-faint); margin-top:8px; }
   .timer-bar .timing-info span { color:var(--green); font-weight:600; }
-  .btn-skip { background:transparent; border:1.5px dashed rgba(255,209,102,0.25); color:var(--gold); margin-top:10px; font-size:14px; font-weight:500; }
+  .btn-skip { background:transparent; border:2px dashed rgba(255,209,102,0.30); color:var(--gold); margin-top:12px; font-size:15px; font-weight:600; padding:14px 16px; letter-spacing:0.2px; }
   .btn-skip:hover { background:var(--gold-bg); }
   .progress-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(40px,1fr)); gap:6px; }
   .prog-chip { aspect-ratio:1; border-radius:var(--radius-md); border:1px solid var(--border-standard); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; background:var(--bg-deep); color:var(--text-faint); }
@@ -644,16 +644,31 @@ function submitProof() {
     if (d.correct) {
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
       showToast('Mission complete! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      // Reset photo UI for current mission
       $('dash-photo-box').classList.remove('has-photo');
-      $('dash-photo-preview').style.display = 'none';
-      $('dash-photo-preview').src = '';
+      var pprev = $('dash-photo-preview');
+      if (pprev) { pprev.style.display = 'none'; pprev.src = ''; }
       photoInput.value = '';
       btn.style.display = 'none';
-      // Start timer for next mission immediately using server-provided time
-      if (d.next_mission && d.next_mission_time) {
-        var times = {};
-        times[d.next_mission.toString()] = d.next_mission_time;
-        startTimer(times, d.next_mission);
+      // Immediately show next mission with timer from server response
+      if (d.next_mission && MISSIONS[d.next_mission-1]) {
+        var nm = MISSIONS[d.next_mission-1];
+        $('cur-num').textContent = 'Mission '+d.next_mission+' of '+MISSIONS.length;
+        $('cur-title').textContent = nm.title;
+        $('cur-location').textContent = nm.location || '';
+        $('cur-task').textContent = nm.task || '';
+        $('current-mission-card').classList.remove('hidden');
+        $('finished-card').classList.add('hidden');
+        if (d.next_mission_time) {
+          var times = {};
+          times[d.next_mission.toString()] = d.next_mission_time;
+          startTimer(times, d.next_mission);
+        } else {
+          startTimer({}, d.next_mission);
+        }
+        window.currentNextHint = nm.next_hint || 'Find the next QR code at the location described after the previous task!';
+        // Mark this as a new mission so loadAll resets photo box cleanly
+        lastCurrentMission = -1;
       }
       loadAll();
     } else {
@@ -684,17 +699,29 @@ function leaveTeam() {
 function startTimer(missionTimes, cur) {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   var start = missionTimes ? missionTimes[cur.toString()] : null;
-  if (!start) { $('timer-display').textContent = '00:00'; return; }
+  if (!start) {
+    // Fallback: use current time so timer always shows something
+    start = new Date().toISOString();
+  }
   var startMs = new Date(start).getTime();
-  if (isNaN(startMs)) { $('timer-display').textContent = '00:00'; return; }
+  if (isNaN(startMs)) {
+    startMs = Date.now();
+  }
+  $('timer-bar').style.display = '';
+  $('timer-display').textContent = formatTime(0);
   function tick() {
     var elapsed = Math.floor((Date.now() - startMs) / 1000);
     if (elapsed < 0 || isNaN(elapsed)) elapsed = 0;
     $('timer-display').textContent = formatTime(elapsed);
-    var info = $('timer-bar').querySelector('.timing-info');
-    if (elapsed <= 300) info.innerHTML = 'Under 5 min = <span>+5 pts</span> &middot; Keep it up!';
-    else if (elapsed <= 600) info.innerHTML = '5-10 min = <span>+3 pts</span> &middot; Still good!';
-    else info.innerHTML = 'Over 10 min &middot; No time bonus, but keep going!';
+    var tb = $('timer-bar');
+    if (tb) {
+      var info = tb.querySelector('.timing-info');
+      if (info) {
+        if (elapsed <= 300) info.innerHTML = 'Under 5 min = <span>+5 pts</span> &middot; Keep it up!';
+        else if (elapsed <= 600) info.innerHTML = '5-10 min = <span>+3 pts</span> &middot; Still good!';
+        else info.innerHTML = 'Over 10 min &middot; No time bonus, but keep going!';
+      }
+    }
   }
   tick(); timerInterval = setInterval(tick, 1000);
 }
@@ -817,11 +844,17 @@ function loadAll() {
         // (scan-hint-box is secondary non-blocking reminder only; main easy buttons + timer + prominent attach always shown for current like task 1).
         // Keep persistent next-dest logic.
         var times = ts.mission_times || {};
+        var startT = times[String(cur)];
         $('cur-task').textContent = m.task || '';
-        if (String(cur) in times) {
-          startTimer(ts.mission_times, cur);
+        // Always start/re-start the timer using mission_times from the server.
+        // The server pre-sets the time for every mission when it becomes current,
+        // so the timer is always available for the current mission.
+        if (startT) {
+          startTimer(times, cur);
         } else {
-          $('timer-display').textContent = '00:00';
+          // Fallback: still show a running timer from now so the UI never shows empty timer
+          times[String(cur)] = new Date().toISOString();
+          startTimer(times, cur);
         }
 
         // Reset photo box state (remove has-photo, clear preview, reset labels) ONLY when a *new* current mission renders.
