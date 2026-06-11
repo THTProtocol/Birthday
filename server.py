@@ -212,7 +212,11 @@ def team_create():
     state['teams'][team_name]['created_at'] = now_iso()
     state['teams'][team_name]['captain'] = member_name
     state['teams'][team_name]['members'] = [{'name': member_name, 'joined_at': now_iso(), 'is_captain': True}]
-    # Timer for first mission starts ONLY when its QR is scanned (via /api/unlock), per spec.
+    # Start timer for the first mission on team creation (so first task has running timer from the start)
+    ts = state['teams'][team_name]
+    ts['mission_times'] = ts.get('mission_times', {})
+    if str(ts['current_mission']) not in ts['mission_times']:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': team_color, 'members': state['teams'][team_name]['members']})
 
@@ -232,7 +236,10 @@ def team_join():
         if m['name'].lower() == member_name.lower():
             return jsonify({'error': 'That name is already in this team!'}), 400
     ts['members'].append({'name': member_name, 'joined_at': now_iso(), 'is_captain': False})
-    # Timer starts only on actual QR scan for the mission (no pre-set on join).
+    # Ensure timer is set for current mission on join (for first mission mainly)
+    ts['mission_times'] = ts.get('mission_times', {})
+    if str(ts['current_mission']) not in ts['mission_times']:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': ts.get('color', 'red'), 'members': ts['members']})
 
