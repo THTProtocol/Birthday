@@ -366,9 +366,11 @@ def submit():
         ts['timing_bonus_earned'] = ts.get('timing_bonus_earned', 0) + timing_bonus
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Note: do NOT pre-set timer for the new current_mission here.
-    # Timer for a mission starts ONLY when its QR is scanned (/api/unlock).
-    # This keeps directions visible after upload, and next task "locked" until scanned.
+    # Start timer for the new current mission immediately upon completing the previous
+    # (so every task has a running timer + easy buttons like the first one the user liked).
+    # The QR scan for a mission "confirms arrival" / unlocks detailed view, but the task is visible with timer from the moment it becomes current.
+    if ts['current_mission'] is not None:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
 
     # Clear blocks on successful completion
     ts['blocked_until'] = None
@@ -444,7 +446,10 @@ def skip():
     ts['score'] -= penalty  # may be zero (penalty = 0, or free skip)
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Note: do NOT pre-set timer here. Timer only on scan of that mission's QR.
+    # Start timer for the new current mission immediately (consistent with submit, so 2nd/3rd have timer + buttons like the first)
+    if ts['current_mission'] is not None:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+
     # Clear blocks on successful skip
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
