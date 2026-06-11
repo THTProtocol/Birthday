@@ -131,9 +131,9 @@
   .mission-title { font-size:22px; font-weight:700; line-height:1.25; margin-bottom:6px; letter-spacing:-0.3px; }
   .mission-loc { display:inline-block; font-size:12px; color:var(--gold); background:var(--gold-bg); padding:4px 10px; border-radius:999px; margin-bottom:14px; font-weight:500; }
   .task-box { font-size:14px; line-height:1.65; color:var(--text-secondary); padding:16px; background:var(--bg-deep); border-radius:var(--radius-md); border-left:2px solid var(--gold); margin-bottom:12px; }
-  .scan-box { font-size:14px; color:var(--gold); padding:16px; background:var(--gold-bg); border:1.5px dashed rgba(255,209,102,0.20); border-radius:var(--radius-md); margin:12px 0; text-align:center; }
-  .scan-box .icon { font-size:24px; display:block; margin-bottom:4px; }
-  .scan-box .hint-text { color:rgba(255,209,102,0.55); font-size:12px; margin-top:4px; }
+  .scan-box { font-size:12px; color:var(--gold); padding:10px 14px; background:var(--gold-bg); border:1px dashed rgba(255,209,102,0.15); border-radius:var(--radius-md); margin:8px 0; text-align:center; opacity:0.85; }
+  .scan-box .icon { font-size:18px; display:inline; margin-right:4px; }
+  .scan-box .hint-text { color:rgba(255,209,102,0.45); font-size:11px; margin-top:2px; }
   .timer-bar { background:var(--bg-deep); border:1px solid var(--border-standard); border-radius:var(--radius-md); padding:14px; margin:10px 0; text-align:center; }
   .timer-bar .elapsed { font-size:28px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; letter-spacing:-1px; line-height:1; }
   .timer-bar .timer-label { font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; margin-top:4px; }
@@ -296,9 +296,9 @@
 
     <div class="scan-box" id="scan-hint-box">
       <span class="icon">&#x1F4F1;</span>
-      <strong>Scan the QR code at this location</strong>
-      <button onclick="startScanner(); return false;" class="btn" style="margin-top:10px; background:var(--gold); color:#111; font-size:14px; padding:10px 16px; width:auto; display:inline-flex; align-items:center; gap:6px;">
-        📷 Open Camera &amp; Scan QR Now
+      <span style="font-size:11px;color:rgba(255,209,102,0.6);">Scan the QR at this location to confirm arrival</span>
+      <button onclick="startScanner(); return false;" class="btn" style="margin-top:6px; background:var(--gold); color:#111; font-size:12px; padding:6px 14px; width:auto; display:inline-flex; align-items:center; gap:4px; opacity:0.9;">
+        📷 Scan QR
       </button>
     </div>
 
@@ -648,6 +648,12 @@ function submitProof() {
       $('dash-photo-preview').src = '';
       photoInput.value = '';
       btn.style.display = 'none';
+      // Start timer for next mission immediately using server-provided time
+      if (d.next_mission && d.next_mission_time) {
+        var times = {};
+        times[d.next_mission.toString()] = d.next_mission_time;
+        startTimer(times, d.next_mission);
+      }
       loadAll();
     } else {
       btn.disabled = false; btn.textContent = 'Submit Proof & Complete Mission';
@@ -678,9 +684,11 @@ function startTimer(missionTimes, cur) {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   var start = missionTimes ? missionTimes[cur.toString()] : null;
   if (!start) { $('timer-display').textContent = '00:00'; return; }
+  var startMs = new Date(start).getTime();
+  if (isNaN(startMs)) { $('timer-display').textContent = '00:00'; return; }
   function tick() {
-    var elapsed = Math.floor((Date.now() - new Date(start).getTime()) / 1000);
-    if (elapsed < 0) elapsed = 0;
+    var elapsed = Math.floor((Date.now() - startMs) / 1000);
+    if (elapsed < 0 || isNaN(elapsed)) elapsed = 0;
     $('timer-display').textContent = formatTime(elapsed);
     var info = $('timer-bar').querySelector('.timing-info');
     if (elapsed <= 300) info.innerHTML = 'Under 5 min = <span>+5 pts</span> &middot; Keep it up!';
@@ -887,7 +895,11 @@ function loadAll() {
         else if (mid === (cur||0).toString()) { chip.className += ' current'; chip.textContent = '○'+mid; }
         grid.appendChild(chip);
       }
+    }).catch(function(e){
+      console.error('loadAll team fetch error', e);
     });
+  }).catch(function(e){
+    console.error('loadAll state fetch error', e);
   });
 }
 
@@ -897,7 +909,17 @@ function skipMission() {
   var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
   var f = new FormData(); f.append('team', myTeam); f.append('mission_id', curId);
   fetch('/api/skip', {method:'POST', body:f}).then(function(r){return r.json();}).then(function(d){
-    if (d.skipped) { $('score-display').textContent = d.score+' pts'; showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error'); loadAll(); }
+    if (d.skipped) {
+      $('score-display').textContent = d.score+' pts';
+      showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error');
+      // Start timer for next mission immediately using server-provided time
+      if (d.next_mission && d.next_mission_time) {
+        var times = {};
+        times[d.next_mission.toString()] = d.next_mission_time;
+        startTimer(times, d.next_mission);
+      }
+      loadAll();
+    }
     else { showToast(d.error, 'error'); }
   });
 }

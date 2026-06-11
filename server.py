@@ -377,6 +377,8 @@ def submit():
     ts['active_cooldown'] = None
 
     save_state(state)
+    # Include next_mission_time so client can start timer immediately (no poll delay)
+    next_time = ts['mission_times'].get(str(ts['current_mission'])) if ts['current_mission'] else None
     return jsonify({
         'correct': True,
         'score': ts['score'],
@@ -385,6 +387,7 @@ def submit():
         'elapsed_seconds': elapsed,
         'bonus_msg': bonus_msg,
         'next_mission': ts['current_mission'],
+        'next_mission_time': next_time,
         'finished': ts['current_mission'] is None,
     })
 
@@ -455,12 +458,15 @@ def skip():
     ts['active_cooldown'] = None
 
     save_state(state)
+    # Include next_mission_time so client can start timer immediately (no poll delay)
+    next_time = ts['mission_times'].get(str(ts['current_mission'])) if ts['current_mission'] else None
     return jsonify({
         'skipped': True,
         'penalty': penalty,
         'free_skip': free_skip,
         'score': ts['score'],
         'next_mission': ts['current_mission'],
+        'next_mission_time': next_time,
         'finished': ts['current_mission'] is None,
     })
 
