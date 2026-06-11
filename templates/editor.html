@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
 <title>Mission Editor  -  Klaudusia's Birthday Hunt</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -343,6 +346,7 @@
     <button class="btn btn-primary pink" id="add-btn" onclick="addMission()">&#x2795; Add Mission</button>
     <button class="btn btn-secondary btn-small" onclick="expandAll()">Expand All</button>
     <button class="btn btn-secondary btn-small" onclick="collapseAll()">Collapse All</button>
+
   </div>
   <div class="group">
     <button class="btn btn-secondary btn-small" onclick="location.href='/qr'">&#x1F4F7; Generate QRs</button>
@@ -352,8 +356,8 @@
 <div class="mission-list" id="mission-list">
   <div class="empty-state" id="empty-state">
     <div class="icon">&#x1F4CB;</div>
-    <h3>No missions yet</h3>
-    <p>Create your first mission to get started.</p>
+    <h3>Loading missions...</h3>
+    <p>One moment...</p>
   </div>
 </div>
 
@@ -384,12 +388,6 @@
 /* =========================
    STATE
    ========================= */
-var ADMIN_PW = localStorage.getItem('admin_pw') || '';
-if (!ADMIN_PW) {
-  var pw = prompt('Enter editor password:');
-  if (pw) { localStorage.setItem('admin_pw', pw); location.reload(); }
-}
-
 var missions = [];
 var missionRecords = []; // stores original objects to preserve unknown fields
 var currentColor = 'red';
@@ -429,7 +427,7 @@ function updateThemeButtons() {
 
 function updateStats() {
   $('stat-count').textContent = missions.length;
-  var words = missions.reduce(function(a,m){ return a + (m.title||'').split(/\s+/).length + (m.task||'').split(/\s+/).length + (m.hint||'').split(/\s+/).length; }, 0);
+  var words = missions.reduce(function(a,m){ return a + (m.title||'').split(/\s+/).length + (m.task||'').split(/\s+/).length; }, 0);
   $('stat-words').textContent = words.toLocaleString();
   var imgs = missions.filter(function(m){ return m.task_image; }).length;
   $('stat-images').textContent = imgs;
@@ -444,13 +442,15 @@ function markSaved(text) {
   setSaveStatus('saved', text || 'Saved');
 }
 
+
+
 /* =========================
    CRUD
    ========================= */
 function addMission() {
   var nextId = missions.length ? Math.max.apply(null, missions.map(function(m){ return m.id; })) + 1 : 1;
   var blank = {
-    id: nextId, title: '', location: '', task: '', scan_hint: '', next_hint: '', hint: '', task_image: ''
+    id: nextId, title: '', location: '', task: '', next_hint: '', task_image: ''
   };
   missions.push(blank);
   missionRecords.push({});
@@ -539,7 +539,7 @@ async function uploadImg(id) {
   var status = $('imgstatus-' + id);
   status.textContent = 'Uploading...'; status.classList.add('uploading');
   var f = new FormData();
-  f.append('password', ADMIN_PW); f.append('image', input.files[0]);
+  f.append('image', input.files[0]);
   try {
     var r = await fetch('/api/editor/upload', {method:'POST', body:f});
     var d = await r.json();
@@ -615,19 +615,9 @@ function render() {
             '<div class="char-count"><span id="task-count-' + m.id + '">0</span> chars</div>' +
           '</div>' +
           '<div class="field">' +
-            '<label>Scan Hint <span class="hint">(general area, shown when unlocked)</span></label>' +
-            '<input type="text" id="scan-' + m.id + '" value="' + escapeHtml(m.scan_hint||'') + '" placeholder="Scan hint" oninput="dirty()">' +
-            '<div class="char-count"><span id="scan-count-' + m.id + '">0</span> chars</div>' +
-          '</div>' +
-          '<div class="field">' +
             '<label>Next Destination <span class="hint">(where next QR is hidden - shown on scan)</span></label>' +
             '<input type="text" id="next-' + m.id + '" value="' + escapeHtml(m.next_hint||'') + '" placeholder="e.g. Go to the tunnel, check the bench" oninput="dirty()">' +
             '<div class="char-count"><span id="next-count-' + m.id + '">0</span> chars</div>' +
-          '</div>' +
-          '<div class="field">' +
-            '<label>Paid Hint <span class="hint">(exact spot, costs 3 pts)</span></label>' +
-            '<input type="text" id="hint-' + m.id + '" value="' + escapeHtml(m.hint||'') + '" placeholder="Hint text" oninput="dirty()">' +
-            '<div class="char-count"><span id="hint-count-' + m.id + '">0</span> chars</div>' +
           '</div>' +
 
           '<div class="field full">' +
@@ -650,7 +640,6 @@ function render() {
             (imgUrl ? '<img class="preview-img" src="' + escapeHtml(imgUrl) + '" alt="">' : '') +
             '<div class="preview-task">' + escapeHtml(m.task || 'No task yet...') + '</div>' +
             '<div class="preview-meta">' +
-              '<div class="meta-tag">&#x1F50D; Scan hint: ' + escapeHtml(m.scan_hint || 'None') + '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -668,11 +657,10 @@ function render() {
 function onFieldChange(id, el, field) {
   if (field === 'title') { $('title-display-' + id).textContent = el.value || 'Untitled Mission'; }
   updateCounts(id); updatePreview(id);
-  if (field === 'task' || field === 'title') { updatePassStatus(id); }
 }
 
 function updateCounts(id) {
-  ['title','loc','task','scan','next','hint'].forEach(function(f){
+  ['title','loc','task','next'].forEach(function(f){
     var el = $(f + '-' + id);
     if (el) { var c = $(f + '-count-' + id); if (c) c.textContent = String(el.value.length); }
   });
@@ -683,7 +671,6 @@ function updatePreview(id) {
   var title = $('title-' + id).value;
   var loc = $('loc-' + id).value;
   var task = $('task-' + id).value;
-  var scan = $('scan-' + id).value;
   var imgUrl = $('img-' + id).value.trim();
   var isPink = currentColor === 'red';
   panel.className = 'preview-card ' + (isPink ? 'pink-theme' : 'blue-theme');
@@ -691,14 +678,7 @@ function updatePreview(id) {
     '<div class="preview-title">' + escapeHtml(title || 'Untitled Mission') + '</div>' +
     '<div class="preview-loc">&#x1F4CD; ' + escapeHtml(loc || 'Unknown location') + '</div>' +
     (imgUrl ? '<img class="preview-img" src="' + escapeHtml(imgUrl) + '" alt="">' : '') +
-    '<div class="preview-task">' + escapeHtml(task || 'No task yet...') + '</div>' +
-    '<div class="preview-meta">' +
-      '<div class="meta-tag">&#x1F50D; Scan hint: ' + escapeHtml(scan || 'None') + '</div>' +
-    '</div>';
-}
-
-  else if (el.value.trim().length < 6) { st.innerHTML = '<span class="bad">&#x26A0; Very short passphrase</span>'; }
-  else { st.innerHTML = '<span class="good">&#x2713; OK</span>'; }
+    '<div class="preview-task">' + escapeHtml(task || 'No task yet...') + '</div>';
 }
 
 /* =========================
@@ -708,19 +688,53 @@ function switchTeam(color) {
   if (dirtyFlag && !confirm('You have unsaved changes for ' + (currentColor==='red'?'Team Red':'Team Blue') + '. Discard them?')) return;
   currentColor = color;
   updateThemeButtons();
-  var f = new FormData(); f.append('password', ADMIN_PW); f.append('color', color);
-  fetch('/api/editor/load', {method:'POST', body:f})
-    .then(function(r){return r.json();})
+
+  // Use cached data if available for instant switch (preloaded both teams)
+  if (color === 'red' && window.redMissionsData) {
+    missions = window.redMissionsData.missions || [];
+    missionRecords = missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+    $('editor-subtitle').textContent = 'Editing ' + (window.redMissionsData.title || '') + '  -  ' + missions.length + ' missions';
+    markSaved('Loaded'); dirtyFlag = false;
+    render();
+    return;
+  }
+  if (color === 'blue' && window.blueMissionsData) {
+    missions = window.blueMissionsData.missions || [];
+    missionRecords = missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+    $('editor-subtitle').textContent = 'Editing ' + (window.blueMissionsData.title || '') + '  -  ' + missions.length + ' missions';
+    markSaved('Loaded'); dirtyFlag = false;
+    render();
+    return;
+  }
+
+  // Load directly from served JSON - no password, full access to all missions
+  var url = (color === 'red') ? '/missions/red.json' : '/missions/blue.json';
+  fetch(url)
+    .then(function(r){ return r.json().catch(function(){ return {error: 'Invalid response'}; }); })
     .then(function(d){
-      if (d.missions) {
+      if (d.missions && Array.isArray(d.missions)) {
         missions = d.missions;
         missionRecords = d.missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+        if (color === 'red') window.redMissionsData = d;
+        else window.blueMissionsData = d;
         $('editor-subtitle').textContent = 'Editing ' + (d.title || '') + '  -  ' + missions.length + ' missions';
         markSaved('Loaded'); dirtyFlag = false;
         render();
-      } else { showToast(d.error || 'Failed to load', 'error'); }
+      } else {
+        var err = d.error || 'Failed to load missions';
+        showToast(err, 'error');
+        $('editor-subtitle').textContent = 'Failed to load: ' + err;
+        var list = $('mission-list');
+        list.innerHTML = '<div class="empty-state"><div class="icon">&#x26A0;</div><h3>Load failed</h3><p>' + escapeHtml(err) + '</p><button class="btn btn-secondary" onclick="switchTeam(currentColor)">Retry</button></div>';
+      }
+    })
+    .catch(function(e){
+      showToast('Network error loading missions', 'error');
+      $('editor-subtitle').textContent = 'Network error - is the server running?';
     });
 }
+
+
 
 /* =========================
    SAVE
@@ -734,9 +748,7 @@ async function saveAll() {
     original.title = $('title-' + m.id).value;
     original.location = $('loc-' + m.id).value;
     original.task = $('task-' + m.id).value;
-    original.scan_hint = $('scan-' + m.id).value;
     original.next_hint = $('next-' + m.id).value;
-    original.hint = $('hint-' + m.id).value;
     original.task_image = $('img-' + m.id).value;
     missions[idx] = original;
   });
@@ -748,7 +760,8 @@ async function saveAll() {
   }
 
   var f = new FormData();
-  f.append('password', ADMIN_PW); f.append('color', currentColor);
+  // no password - full unrestricted access to edit all missions
+  f.append('color', currentColor);
   f.append('missions', JSON.stringify(missions));
 
   try {
@@ -756,7 +769,7 @@ async function saveAll() {
     var d = await r.json();
     if (d.success) {
       markSaved('Saved ' + d.count + ' missions');
-      showToast('Saved! Regenerate QRs if scan hints changed.', 'success');
+      showToast('Saved! Regenerate QRs if locations changed.', 'success');
       // refresh records
       missionRecords = missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
     } else { showToast(d.error||'Save failed', 'error'); setSaveStatus('error', 'Save failed'); }
@@ -767,9 +780,27 @@ document.addEventListener('keydown', function(e){
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveAll(); }
 });
 
-// Init
+// Init - no password, full access. Preload BOTH teams in parallel so switching tabs is instant and you see all 20 tasks ready.
 updateThemeButtons();
-switchTeam('red');
+
+Promise.all([
+  fetch('/missions/red.json').then(r => r.json()),
+  fetch('/missions/blue.json').then(r => r.json())
+]).then(function([redData, blueData]) {
+  window.redMissionsData = redData;
+  window.blueMissionsData = blueData;
+  // Load Pink (red) first
+  missions = redData.missions || [];
+  missionRecords = missions.map(function(m){ return JSON.parse(JSON.stringify(m)); });
+  $('editor-subtitle').textContent = 'Editing ' + (redData.title || '') + '  -  ' + missions.length + ' missions';
+  markSaved('Loaded'); dirtyFlag = false;
+  render();
+}).catch(function(e) {
+  showToast('Failed to preload missions - ' + (e.message || e), 'error');
+  $('editor-subtitle').textContent = 'Error loading missions. Check console and server logs.';
+  // Fallback
+  switchTeam('red');
+});
 </script>
 </body>
 </html>

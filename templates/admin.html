@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
 <title>Admin</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -114,6 +117,18 @@
   }
   .state-row .team-name { font-weight:600; min-width:100px; font-size:13px; }
   .state-row .status { font-size:12px; color:var(--text-muted); }
+
+  .progress-mini { display:flex; gap:3px; flex-wrap:wrap; align-items:center; }
+  .prog-chip { 
+    width:16px; height:16px; font-size:9px; line-height:1; 
+    display:flex; align-items:center; justify-content:center; 
+    border:1px solid var(--border-standard); border-radius:2px; 
+    background:var(--bg-deep); color:var(--text-faint); 
+    font-weight:600;
+  }
+  .prog-chip.done-pink { background:var(--pink-bg); border-color:var(--pink); color:var(--pink); }
+  .prog-chip.done-blue { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
+  .prog-chip.current { border-color:var(--gold); color:var(--gold); box-shadow:0 0 0 1px rgba(255,209,102,0.3); }
 </style>
 </head>
 <body>
@@ -204,6 +219,12 @@
   </div>
 </div>
 
+<!-- Team Mission Progress -->
+<div class="section">
+  <h2>Team Mission Progress</h2>
+  <div id="team-progress"></div>
+</div>
+
 <!-- Activity Feed -->
 <div class="section">
   <h2>Activity Feed</h2>
@@ -222,12 +243,6 @@
 <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')"><img id="lightbox-img" src=""></div>
 
 <script>
-const ADMIN_PW = localStorage.getItem('admin_pw') || '';
-if (!ADMIN_PW) {
-  var pw = prompt('Enter admin password:');
-  if (pw) { localStorage.setItem('admin_pw', pw); location.reload(); }
-}
-
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -242,7 +257,7 @@ function openPhoto(url) {
 
 async function loadState() {
   try {
-    const r = await fetch('/api/admin/state?password=' + ADMIN_PW);
+    const r = await fetch('/api/admin/state');
     const s = await r.json();
     if (s.error) { showToast(s.error, 'error'); return; }
 
@@ -257,6 +272,19 @@ async function loadState() {
     // Score row
     const scoreRow = document.getElementById('score-row');
     const sorted = teamNames.sort((a,b) => (teams[b].score||0) - (teams[a].score||0));
+
+    // Fetch actual missions lists (so progress shows all 10 for pink and 10 for blue dynamically)
+    let redMissions = [];
+    let blueMissions = [];
+    try {
+      const redRes = await fetch('/api/missions');
+      redMissions = await redRes.json();
+      const blueTeamName = sorted.find(n => (teams[n].color || 'red') === 'blue');
+      if (blueTeamName) {
+        const blueRes = await fetch('/api/missions?team=' + encodeURIComponent(blueTeamName));
+        blueMissions = await blueRes.json();
+      }
+    } catch(e) { console.warn('Could not fetch missions for admin progress', e); }
     if (sorted.length === 0) {
       scoreRow.innerHTML = '<div class="score-item"><span class="pts" style="color:var(--text-muted)">-</span><span class="name">No teams yet</span></div>';
     } else {
@@ -308,6 +336,44 @@ async function loadState() {
           ${actions}
         </div>`;
       }).join('');
+    }
+
+    // Team mission progress (shows all tasks with status for each team)
+    const progEl = document.getElementById('team-progress');
+    if (progEl) {
+      if (sorted.length === 0) {
+        progEl.innerHTML = '<div class="empty">No teams yet.</div>';
+      } else {
+        progEl.innerHTML = sorted.map(name => {
+          const t = teams[name];
+          const isPink = (t.color || 'red') === 'red';
+          const missions = isPink ? redMissions : blueMissions;
+          const total = missions.length || 10;
+          const completed = t.completed || {};
+          const skipped = t.skipped || {};
+          const cur = t.current_mission;
+          let chips = '';
+          for (let i = 1; i <= total; i++) {
+            const mid = i.toString();
+            let cls = 'prog-chip';
+            let txt = i;
+            if (completed[mid]) {
+              cls += isPink ? ' done-pink' : ' done-blue';
+              txt = '✓';
+            } else if (skipped[mid]) {
+              cls += isPink ? ' done-pink' : ' done-blue';
+              txt = skipped[mid].free_skip ? '⚡' : 'S';
+            } else if (cur === i) {
+              cls += ' current';
+            }
+            chips += `<span class="${cls}" title="Mission ${i}">${txt}</span>`;
+          }
+          return `<div class="state-row">
+            <span class="team-name">${escHtml(name)} (${isPink ? 'pink' : 'blue'})</span>
+            <div class="progress-mini">${chips}</div>
+          </div>`;
+        }).join('');
+      }
     }
 
     // Activity feed
@@ -402,7 +468,7 @@ function escHtml(s) { const d=document.createElement('div'); d.textContent=s; re
 function escJs(s) { return s.replace(/'/g, "\\'"); }
 
 async function adminAction(action) {
-  const f = new FormData(); f.append('password', ADMIN_PW);
+  const f = new FormData();
   const r = await fetch('/api/admin/' + action, { method:'POST', body:f });
   const d = await r.json();
   if (d.success) { showToast(action==='start'?'Hunt started!':'Game reset','success'); loadState(); }
@@ -412,7 +478,7 @@ async function giveBonus() {
   const team = document.getElementById('bonus-team').value;
   const pts = parseInt(document.getElementById('bonus-pts').value);
   if (team === '-' || isNaN(pts)) return showToast('Select team and points', 'error');
-  const f = new FormData(); f.append('password', ADMIN_PW); f.append('team', team); f.append('points', pts);
+  const f = new FormData(); f.append('team', team); f.append('points', pts);
   const r = await fetch('/api/admin/bonus', { method:'POST', body:f });
   const d = await r.json();
   if (d.success) { showToast(`${pts>0?'+':''}${pts} to ${team}`, 'success'); loadState(); }
@@ -423,7 +489,6 @@ async function offerBonusCard() {
   const card = document.getElementById('offer-card').value;
   if (!team || team === 'Select team...') return showToast('Select a team', 'error');
   const f = new FormData();
-  f.append('password', ADMIN_PW);
   f.append('team', team);
   f.append('card', card);
   const r = await fetch('/api/bonus/offer', { method:'POST', body:f });
@@ -434,7 +499,6 @@ async function offerBonusCard() {
 
 async function clearBlock(team) {
   const f = new FormData();
-  f.append('password', ADMIN_PW);
   f.append('team', team);
   const r = await fetch('/api/admin/clear-block', { method:'POST', body:f });
   const d = await r.json();
@@ -443,7 +507,6 @@ async function clearBlock(team) {
 
 async function cancelOffer(team) {
   const f = new FormData();
-  f.append('password', ADMIN_PW);
   f.append('team', team);
   const r = await fetch('/api/bonus/cancel', { method:'POST', body:f });
   const d = await r.json();

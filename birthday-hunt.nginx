@@ -1,0 +1,21 @@
+server {
+    listen 80;
+    server_name hunt.yourdomain.com;   # <-- CHANGE THIS
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/opt/birthday-hunt/birthday-hunt.sock;
+    }
+
+    location /static {
+        alias /opt/birthday-hunt/static;
+    }
+
+    location /uploads {
+        alias /opt/birthday-hunt/uploads;
+    }
+
+    location /qr-codes-v2 {
+        alias /opt/birthday-hunt/qr-codes-v2;
+    }
+}

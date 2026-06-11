@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
 <title>Klaudusia's Birthday Hunt</title>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
@@ -86,8 +90,10 @@
   .rules-mini { font-size:11px; color:var(--text-faint); text-align:center; margin-top:18px; line-height:1.6; }
   .rules-mini span { color:var(--gold); font-weight:500; }
   .error-msg { font-size:13px; color:var(--red); text-align:center; margin-top:8px; min-height:20px; }
-  .hunt-card { width:100%; max-width:540px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:22px 20px; margin-bottom:10px; box-shadow:var(--shadow-md); transition:border-color .2s; }
-  .hunt-card:hover { border-color:var(--border-hover); }
+  .hunt-card { width:100%; max-width:560px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:24px 22px; margin-bottom:12px; box-shadow:var(--shadow-md); transition:all .2s cubic-bezier(0.4,0,0.2,1); }
+  .hunt-card:hover { border-color:var(--border-hover); transform:translateY(-1px); box-shadow:var(--shadow-lg); }
+  .current-mission { border-color:var(--gold); background:linear-gradient(145deg, var(--bg-panel), #111214); position:relative; }
+  .current-mission::before { content:''; position:absolute; top:-1px; left:20px; right:20px; height:3px; background:linear-gradient(to right, var(--gold), var(--pink)); border-radius:3px; opacity:0.6; }
   .section-title { font-size:10px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.2px; }
   .section-title .dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
   .dot.pink { background:var(--pink); }
@@ -180,6 +186,7 @@
 
 <div class="top-bar">
   <a href="/">Hunt Home</a>
+  <a href="#" onclick="startScanner(); return false;" style="font-size:13px; color:var(--gold); text-decoration:none; background:var(--gold-bg); padding:4px 10px; border-radius:999px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">📷 Scan QR</a>
   <span class="score-pill" id="score-display">0 pts</span>
 </div>
 
@@ -265,11 +272,18 @@
 
     <!-- Photo Upload on Dashboard -->
     <div class="photo-upload-box" id="dash-photo-box" onclick="document.getElementById('dash-photo-input').click()">
-      <input type="file" id="dash-photo-input" accept="image/*" capture="environment" onchange="previewDashPhoto(this)">
+      <input type="file" id="dash-photo-input" accept="image/*,video/*" capture="environment" onchange="previewDashPhoto(this)">
       <span class="photo-label">&#x1F4F8; Attach Photo Proof</span>
       <span class="photo-sub">Any teammate can upload. Required to complete.</span>
       <img class="photo-preview" id="dash-photo-preview" src="" alt="">
     </div>
+
+    <!-- Next directions revealed after photo/video uploaded -->
+    <div class="next-dest" id="next-dest" style="display:none;">
+      <div class="label">Directions to the Next QR Code</div>
+      <div class="clue" id="next-clue-text"></div>
+    </div>
+
     <button class="btn btn-submit-proof" id="btn-submit-proof" onclick="submitProof()">Submit Proof &amp; Complete Mission</button>
 
     <div class="timer-bar" id="timer-bar">
@@ -283,7 +297,9 @@
     <div class="scan-box" id="scan-hint-box">
       <span class="icon">&#x1F4F1;</span>
       <strong>Scan the QR code at this location</strong>
-      <div class="hint-text" id="cur-scan-hint"></div>
+      <button onclick="startScanner(); return false;" class="btn" style="margin-top:10px; background:var(--gold); color:#111; font-size:14px; padding:10px 16px; width:auto; display:inline-flex; align-items:center; gap:6px;">
+        📷 Open Camera &amp; Scan QR Now
+      </button>
     </div>
 
     <button class="btn btn-skip" id="skip-btn" onclick="skipMission()">Skip Mission (0 pts)</button>
@@ -308,27 +324,44 @@
 <a class="admin-link" href="/admin">Admin</a>
 <div id="toast" class="toast"></div>
 
+<!-- QR Scanner Modal -->
+<div id="scanner-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:999; align-items:center; justify-content:center; flex-direction:column; padding:12px;">
+  <div style="background:var(--bg-panel); padding:16px 18px; border-radius:16px; max-width:92vw; width:420px; text-align:center; border:1px solid var(--border-standard);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <h3 style="margin:0; font-size:16px; color:var(--gold);">📷 Scan Hunt QR</h3>
+      <button onclick="stopScanner()" style="background:none; border:none; color:var(--text-muted); font-size:20px; line-height:1; cursor:pointer;">×</button>
+    </div>
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px; line-height:1.3;">Point camera at any Pink or Blue task QR sticker. It will auto-detect and open the mission.</p>
+    <video id="scanner-video" style="width:100%; max-height:320px; background:#000; border-radius:10px; border:2px solid var(--gold-bg);" autoplay playsinline></video>
+    <canvas id="scanner-canvas" style="display:none;"></canvas>
+    <div id="scanner-status" style="margin:10px 0 6px; font-size:13px; color:var(--text-secondary); min-height:18px;">Align the QR in the frame — scanning automatically...</div>
+    <button onclick="stopScanner()" class="btn btn-ghost" style="padding:8px 20px; font-size:13px;">Cancel</button>
+  </div>
+</div>
+
 <style>
 /* Photo upload on dashboard - mobile optimized */
 .photo-upload-box {
-  margin:14px 0; padding:24px 16px;
+  margin:16px 0; padding:26px 18px;
   border:2px dashed var(--border-standard);
-  border-radius:var(--radius-lg);
-  text-align:center; cursor:pointer; transition:all .2s;
-  background:var(--bg-deep); min-height:80px;
+  border-radius:var(--radius-xl);
+  text-align:center; cursor:pointer; transition:all .2s cubic-bezier(0.4,0,0.2,1);
+  background:var(--bg-deep); min-height:88px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
 }
-.photo-upload-box:active { transform:scale(0.98); border-color:var(--gold); }
-.photo-upload-box:hover { border-color:var(--gold); background:rgba(255,209,102,0.03); }
+.photo-upload-box:active { transform:scale(0.985); border-color:var(--gold); }
+.photo-upload-box:hover { border-color:var(--gold); background:rgba(255,209,102,0.035); }
 .photo-upload-box.has-photo {
   border-style:solid; border-color:var(--green); background:var(--green-bg);
   padding:12px;
+  box-shadow:0 4px 16px rgba(16,185,129,0.15);
 }
 .photo-upload-box input { display:none; }
-.photo-upload-box .photo-label { font-size:15px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:4px; }
-.photo-upload-box .photo-sub { font-size:12px; color:var(--text-faint); display:block; }
-.photo-upload-box .photo-preview { max-width:100%; max-height:200px; border-radius:var(--radius-md); margin-top:10px; display:none; }
+.photo-upload-box .photo-label { font-size:15px; font-weight:600; color:var(--text-primary); display:block; }
+.photo-upload-box .photo-sub { font-size:12px; color:var(--text-muted); margin-top:3px; }
+.photo-upload-box .photo-preview { max-width:100%; max-height:210px; border-radius:var(--radius-md); margin-top:12px; border:1px solid var(--border-standard); display:none; }
 .photo-upload-box.has-photo .photo-preview { display:block; }
 .photo-upload-box.has-photo .photo-label,
 .photo-upload-box.has-photo .photo-sub { display:none; }
@@ -347,6 +380,29 @@
   .mission-title { font-size:19px; }
   .task-box { font-size:13px; padding:12px; }
 }
+
+/* Next directions in dashboard - revealed after photo/video uploaded */
+.next-dest {
+  background: var(--gold-bg);
+  border: 1.5px solid rgba(255,209,102,0.25);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin: 10px 0;
+  text-align: left;
+}
+.next-dest .label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.next-dest .clue {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
 </style>
 
 <script>
@@ -360,6 +416,8 @@ var TIMER_FAST_SEC = 300, TIMER_MEDIUM_SEC = 600;
 // ================== STATE ==================
 var myTeam = '', myMember = '', myColor = 'red', pickedColor = null, lastScore = 0;
 var timerInterval = null, blockInterval = null;
+var persistentNextDirections = null;
+var persistentNextDirections = null;
 
 // ================== HELPERS ==================
 function $(id){ return document.getElementById(id); }
@@ -460,8 +518,12 @@ function doJoin() {
         if (d.success) {
           myTeam = teamName; localStorage.setItem(TEAM_KEY, teamName); localStorage.setItem(MEMBER_KEY, myMember);
           applyTeamColor(d.color);
-          show('hunt-area'); loadAll();
-          showToast('Joined ' + teamName + '! Good luck, ' + myMember + '!', 'success');
+          // Re-fetch the correct missions list for this team's color (so blue gets PDF manual, pink gets fireball tasks)
+          fetch('/api/missions?team=' + encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(mdata){
+            MISSIONS = mdata || [];
+            show('hunt-area'); loadAll();
+            showToast('Joined ' + teamName + '! Good luck, ' + myMember + '!', 'success');
+          });
         } else { setError('pick-error', d.error || 'Failed to join'); }
       });
     });
@@ -475,8 +537,12 @@ function doJoin() {
       if (d.success) {
         myTeam = name; localStorage.setItem(TEAM_KEY, name); localStorage.setItem(MEMBER_KEY, myMember);
         applyTeamColor(d.color);
-        show('hunt-area'); loadAll();
-        showToast('Welcome, Captain ' + myMember + '! Get hunting!', 'success');
+        // Re-fetch the correct missions list for this team's color (so blue gets PDF manual, pink gets fireball tasks)
+        fetch('/api/missions?team=' + encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(mdata){
+          MISSIONS = mdata || [];
+          show('hunt-area'); loadAll();
+          showToast('Welcome, Captain ' + myMember + '! Get hunting!', 'success');
+        });
       } else { setError('pick-error', d.error || 'Failed to create'); }
     });
   }
@@ -484,18 +550,49 @@ function doJoin() {
 
 function previewDashPhoto(input) {
   if (input.files && input.files[0]) {
+    var file = input.files[0];
     var reader = new FileReader();
     reader.onload = function(e) {
-      var img = $('dash-photo-preview');
       var box = $('dash-photo-box');
-      img.src = e.target.result;
+      var oldPreview = $('dash-photo-preview');
+      if (file.type.startsWith('video/')) {
+        var video = document.createElement('video');
+        video.id = 'dash-photo-preview';
+        video.src = e.target.result;
+        video.controls = true;
+        video.style.maxHeight = '200px';
+        video.style.width = '100%';
+        video.style.borderRadius = 'var(--radius-md)';
+        if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(video, oldPreview);
+        else box.appendChild(video);
+      } else {
+        if (oldPreview.tagName === 'VIDEO') {
+          var img = document.createElement('img');
+          img.id = 'dash-photo-preview';
+          img.className = 'photo-preview';
+          if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(img, oldPreview);
+          else box.appendChild(img);
+          oldPreview = img;
+        }
+        oldPreview.src = e.target.result;
+      }
       box.classList.add('has-photo');
-      box.querySelector('.photo-label').textContent = 'Photo attached!';
+      var label = box.querySelector('.photo-label');
+      if (label) label.textContent = file.type.startsWith('video/') ? 'Video attached!' : 'Photo attached!';
       $('btn-submit-proof').style.display = 'block';
       $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
       $('btn-submit-proof').disabled = false;
+
+      // reveal directions to next spot once photo/video is uploaded
+      var nd = document.getElementById('next-dest');
+      if (nd) {
+        nd.style.display = 'block';
+        var clue = document.getElementById('next-clue-text');
+        if (clue) clue.textContent = window.currentNextHint || 'Find the next QR code at the location described after the previous task!';
+        persistentNextDirections = clue ? clue.textContent : window.currentNextHint;
+      }
     };
-    reader.readAsDataURL(input.files[0]);
+    reader.readAsDataURL(file);
   }
 }
 
@@ -529,6 +626,10 @@ function leaveTeam() {
   myTeam = ''; myMember = '';
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   if (blockInterval) { clearInterval(blockInterval); blockInterval = null; }
+  window.currentNextHint = '';
+  persistentNextDirections = null;
+  var nd = document.getElementById('next-dest');
+  if (nd) nd.style.display = 'none';
   goToName();
 }
 
@@ -658,16 +759,45 @@ function loadAll() {
         $('cur-num').textContent = 'Mission '+cur+' of '+MISSIONS.length;
         $('cur-title').textContent = m.title;
         $('cur-location').textContent = m.location || '';
-        $('cur-task').textContent = m.task || '';
-        $('cur-scan-hint').textContent = 'Hint: ' + (m.scan_hint || 'Find the QR code here');
         $('current-mission-card').classList.remove('hidden');
         $('finished-card').classList.add('hidden');
-        startTimer(ts.mission_times, cur);
+
+        // Only show full task and start timer if the QR has been scanned (timer started on scan)
+        var times = ts.mission_times || {};
+        var unlocked = String(cur) in times;
+        if (unlocked) {
+          $('cur-task').textContent = m.task || '';
+          startTimer(ts.mission_times, cur);
+          $('dash-photo-box').style.display = '';
+          $('btn-submit-proof').style.display = 'none';  // shown in preview
+        } else {
+          $('cur-task').innerHTML = '<em>Scan the QR code at the location shown in the directions above to unlock this mission and start the timer.</em>';
+          // Do not start timer yet - waits for scan
+          $('dash-photo-box').style.display = 'none';
+          $('btn-submit-proof').style.display = 'none';
+        }
+
+        // store next hint for reveal after photo upload
+        window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
       } else {
         $('current-mission-card').classList.add('hidden');
         $('finished-card').classList.remove('hidden');
         $('final-score').textContent = newScore+' pts';
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        persistentNextDirections = null;  // no more next directions when finished
+      }
+
+      // Centralized next directions display: keep visible if persistent (revealed after proof)
+      // until user scans the next QR (flag cleared in scanner)
+      var nd = document.getElementById('next-dest');
+      if (nd) {
+        if (persistentNextDirections) {
+          nd.style.display = 'block';
+          var clue = document.getElementById('next-clue-text');
+          if (clue) clue.textContent = persistentNextDirections;
+        } else {
+          nd.style.display = 'none';
+        }
       }
 
       // Progress grid
@@ -728,7 +858,11 @@ if (myTeam && myMember) {
   myColor = storedColor === 'blue' ? 'blue' : 'pink';
   applyTeamColor(myColor);
   show('hunt-area');
-  loadAll();
+  // Force refresh of the missions list using the actual team (ensures blue gets PDF manual tasks, pink gets fireball tasks even after reset or stale localStorage)
+  fetch('/api/missions?team=' + encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(data){
+    MISSIONS = data || [];
+    loadAll();
+  });
   // Refresh team color from server
   fetch('/api/team/'+encodeURIComponent(myTeam)).then(function(r){return r.json();}).then(function(d){
     if (d.color) { myColor = d.color === 'blue' ? 'blue' : 'pink'; localStorage.setItem('klaudusia_color', myColor); applyTeamColor(myColor); }
@@ -768,6 +902,107 @@ setInterval(function(){
     }).catch(function(){});
   }
 }, 7000);
+
+/* =========================
+   QR SCANNER (compatible with hunt QRs)
+   ========================= */
+var scannerStream = null;
+var scannerInterval = null;
+var scannerVideo = null;
+var scannerCanvas = null;
+var scannerCtx = null;
+
+function startScanner() {
+  var modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  scannerVideo = document.getElementById('scanner-video');
+  scannerCanvas = document.getElementById('scanner-canvas');
+  scannerCtx = scannerCanvas.getContext('2d');
+
+  var statusEl = document.getElementById('scanner-status');
+  statusEl.textContent = 'Starting camera...';
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } })
+    .then(function(stream) {
+      scannerStream = stream;
+      scannerVideo.srcObject = stream;
+      scannerVideo.setAttribute('playsinline', true);
+      scannerVideo.play().catch(function(){});
+      statusEl.textContent = 'Scanning... Align any Pink/Blue QR sticker in the frame';
+      scannerInterval = setInterval(scanFrame, 180);
+    })
+    .catch(function(err) {
+      statusEl.textContent = 'Camera unavailable: ' + (err.message || 'permission denied') + '. Try the native camera app on your phone or check browser permissions.';
+      console.error(err);
+    });
+}
+
+function scanFrame() {
+  if (!scannerVideo || !scannerStream || scannerVideo.paused || scannerVideo.ended) return;
+  if (scannerVideo.readyState !== scannerVideo.HAVE_ENOUGH_DATA) return;
+
+  scannerCanvas.height = scannerVideo.videoHeight;
+  scannerCanvas.width = scannerVideo.videoWidth;
+  scannerCtx.drawImage(scannerVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
+
+  var imageData = scannerCtx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+  var code = jsQR(imageData.data, imageData.width, imageData.height, {
+    inversionAttempts: "dontInvert",
+  });
+
+  if (code && code.data) {
+    var url = code.data.trim();
+    var statusEl = document.getElementById('scanner-status');
+    if (statusEl) statusEl.textContent = 'QR detected! Loading mission...';
+
+    // Parse for friendly feedback + basic team match
+    var match = url.match(/\/unlock\/(\d+)(?:\?c=(red|blue))?/i);
+    var scannedId = match ? match[1] : null;
+    var scannedColor = match && match[2] ? match[2].toLowerCase() : null;
+
+    if (scannedId && (window.myColor || myColor)) {
+      var mc = window.myColor || myColor;
+      var myC = (mc === 'pink' || mc === 'red') ? 'red' : 'blue';
+      if (scannedColor && scannedColor !== myC) {
+        if (statusEl) statusEl.textContent = 'Scanned Mission ' + scannedId + ' for the other team — opening anyway...';
+      } else if (scannedId) {
+        if (statusEl) statusEl.textContent = 'Scanned Mission ' + scannedId + '! Opening task...';
+      }
+    }
+
+    stopScanner();
+    persistentNextDirections = null;  // we scanned (the next) QR, so previous directions no longer needed
+
+    // All our generated QRs are /unlock/id?c=color — fully compatible
+    setTimeout(function(){
+      if (url.indexOf('/unlock/') !== -1 || url.indexOf('?c=') !== -1 || url.indexOf('http') === 0) {
+        window.location.href = url;
+      } else {
+        // Fallback for weird QR
+        window.location.href = url;
+      }
+    }, 420);
+  }
+}
+
+function stopScanner() {
+  if (scannerInterval) {
+    clearInterval(scannerInterval);
+    scannerInterval = null;
+  }
+  if (scannerStream) {
+    scannerStream.getTracks().forEach(function(track) { track.stop(); });
+    scannerStream = null;
+  }
+  var modal = document.getElementById('scanner-modal');
+  if (modal) modal.style.display = 'none';
+  if (scannerVideo) {
+    scannerVideo.srcObject = null;
+  }
+  var s = document.getElementById('scanner-status');
+  if (s) s.textContent = 'Point camera at a task QR';
+}
 </script>
 </body>
 </html>

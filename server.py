@@ -13,6 +13,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'klaudusia-bday-' + uuid.uuid4().h
 BASE_DIR = Path(__file__).parent
 UPLOAD_DIR = BASE_DIR / 'uploads'
 STATE_FILE = BASE_DIR / 'state.json'
+# ADMIN_PASSWORD kept for reference but no longer required for control panel actions
+# (removed to allow easy game restart/reset from /admin without password)
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'cakeoclock2026')
 SKIP_PENALTY = int(os.environ.get('SKIP_PENALTY', '0'))   # Rules: zero for skipped
 BASE_POINTS = int(os.environ.get('BASE_POINTS', '10'))
@@ -71,7 +73,7 @@ RED_DATA = load_missions(BASE_DIR / 'missions_red.json')
 BLUE_DATA = load_missions(BASE_DIR / 'missions_blue.json')
 RED_MISSIONS = RED_DATA['missions']
 BLUE_MISSIONS = BLUE_DATA['missions']
-HINT_COST = RED_DATA.get('hint_cost', 3)
+HINT_COST = 0  # Hints disabled - call teammates if stuck
 
 
 def get_missions(color):
@@ -166,7 +168,7 @@ def unlock(mission_id):
     next_mission = next((m for m in missions if m['id'] == mission_id + 1), None)
     next_hint = mission.get('next_hint')
     if not next_hint and next_mission:
-        next_hint = next_mission.get('scan_hint', 'Find the next QR code!')
+        next_hint = 'Find the next QR code at the location described after the previous task!'
     elif not next_hint:
         next_hint = None
     return render_template('unlock.html', mission=mission, color=color,
@@ -210,6 +212,11 @@ def team_create():
     state['teams'][team_name]['created_at'] = now_iso()
     state['teams'][team_name]['captain'] = member_name
     state['teams'][team_name]['members'] = [{'name': member_name, 'joined_at': now_iso(), 'is_captain': True}]
+    # Start timer for the first mission immediately on team creation
+    ts = state['teams'][team_name]
+    ts['mission_times'] = ts.get('mission_times', {})
+    if str(ts['current_mission']) not in ts['mission_times']:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': team_color, 'members': state['teams'][team_name]['members']})
 
@@ -229,8 +236,30 @@ def team_join():
         if m['name'].lower() == member_name.lower():
             return jsonify({'error': 'That name is already in this team!'}), 400
     ts['members'].append({'name': member_name, 'joined_at': now_iso(), 'is_captain': False})
+    # Ensure timer is set for current mission (in case team was created before this fix)
+    ts['mission_times'] = ts.get('mission_times', {})
+    if str(ts['current_mission']) not in ts['mission_times']:
+        ts['mission_times'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': ts.get('color', 'red'), 'members': ts['members']})
+
+@app.route('/api/unlock', methods=['POST'])
+def api_unlock():
+    """Called when a player scans the QR for their current mission.
+    This starts the timer for that mission (if not already started) and confirms unlock.
+    The timer starts on scan, not on proof upload."""
+    team = request.form.get('team', '').strip()
+    mission_id = int(request.form.get('mission_id', '0'))
+    state = load_state()
+    if team not in state['teams']:
+        return jsonify({'error': 'Team not found'}), 400
+    ts = state['teams'][team]
+    if mission_id == ts.get('current_mission'):
+        ts['mission_times'] = ts.get('mission_times', {})
+        if str(mission_id) not in ts['mission_times']:
+            ts['mission_times'][str(mission_id)] = now_iso()
+            save_state(state)
+    return jsonify({'success': True})
 
 
 @app.route('/api/team/list')
@@ -436,48 +465,8 @@ def skip():
 
 @app.route('/api/hint', methods=['POST'])
 def buy_hint():
-    state = load_state()
-    team = request.form.get('team', '').strip()
-    mission_id = int(request.form.get('mission_id', '0'))
-    if team not in state['teams']:
-        return jsonify({'error': 'Team not found'}), 400
-    ts = state['teams'][team]
-
-    # ── Block checks ──────────────────────────────────────────
-    if ts.get('blocked_until'):
-        block_end = ts['blocked_until']
-        try:
-            end_dt = datetime.fromisoformat(block_end)
-            if datetime.now(timezone.utc) < end_dt:
-                remaining = int((end_dt - datetime.now(timezone.utc)).total_seconds())
-                return jsonify({'error': f'Blocked! {ts.get("active_cooldown", "Cooldown")} - {remaining}s remaining.'}), 400
-        except (ValueError, TypeError):
-            pass
-
-    # TIME BREAK block
-    active_b = ts.get('active_bonus')
-    if active_b and active_b.get('type') == 'block':
-        pushups = active_b.get('pushups_required', 150)
-        return jsonify({'error': f'TIME BREAK! Complete {pushups} pushups first.'}), 400
-
-    color = ts.get('color', 'red')
-    missions = get_missions(color)
-    if mission_id != ts['current_mission']:
-        return jsonify({'error': f'Can only get hint for Mission #{ts["current_mission"]}'}), 400
-
-    hints_bought = ts.setdefault('hints_bought', {})
-    if str(mission_id) in hints_bought:
-        mission = next((m for m in missions if m['id'] == mission_id), None)
-        return jsonify({'hint': mission.get('hint', 'No hint available.'),
-                        'already_bought': True, 'score': ts['score']})
-
-    ts['score'] -= HINT_COST
-    hints_bought[str(mission_id)] = {'timestamp': now_iso(), 'cost': HINT_COST}
-    save_state(state)
-
-    mission = next((m for m in missions if m['id'] == mission_id), None)
-    return jsonify({'hint': mission.get('hint', 'No hint available.'),
-                    'cost': HINT_COST, 'score': ts['score']})
+    # Hints are disabled for this hunt. Call your teammates if stuck.
+    return jsonify({'error': 'Hints are disabled. Call your teammates if you are stuck!'}), 400
 
 
 @app.route('/api/state')
@@ -521,9 +510,7 @@ def api_team(team_name):
 @app.route('/api/bonus/offer', methods=['POST'])
 def bonus_offer():
     """Admin offers a bonus card to a team. Team must accept or decline."""
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
-
+    # Password requirement removed for easy control panel access
     team = request.form.get('team', '').strip()
     card_id = request.form.get('card', '').strip()
 
@@ -639,8 +626,7 @@ def bonus_respond():
 @app.route('/api/bonus/cancel', methods=['POST'])
 def bonus_cancel():
     """Admin cancels a pending bonus offer for a team."""
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed for easy control panel access
     team = request.form.get('team', '').strip()
     state = load_state()
     if team not in state['teams']:
@@ -686,8 +672,7 @@ def verify_pushups():
 
 @app.route('/api/admin/reset', methods=['POST'])
 def admin_reset():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed - easy restart from control panel
     save_state({'teams': {}, 'started': False, 'start_time': None})
     for f in UPLOAD_DIR.iterdir():
         if f.is_file():
@@ -697,8 +682,7 @@ def admin_reset():
 
 @app.route('/api/admin/start', methods=['POST'])
 def admin_start():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed - easy restart from control panel
     state = load_state()
     state['started'] = True
     state['start_time'] = now_iso()
@@ -712,8 +696,7 @@ def admin_start():
 
 @app.route('/api/admin/bonus', methods=['POST'])
 def admin_bonus():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed - easy control panel access
     team = request.form.get('team', '').strip()
     pts = int(request.form.get('points', 0))
     state = load_state()
@@ -726,16 +709,14 @@ def admin_bonus():
 
 @app.route('/api/admin/state')
 def admin_state():
-    if request.args.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed - easy control panel access (no ?password needed)
     return jsonify(load_state())
 
 
 @app.route('/api/admin/clear-block', methods=['POST'])
 def admin_clear_block():
     """Admin forcibly clears a team's block (TIME TAX / TIME BREAK)."""
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed - easy control panel access
     team = request.form.get('team', '').strip()
     state = load_state()
     if team not in state['teams']:
@@ -763,17 +744,17 @@ def editor():
 
 @app.route('/api/editor/load', methods=['POST'])
 def editor_load():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed for full unrestricted access to all 20 missions
     color = request.form.get('color', 'red')
-    data = get_mission_data(color)
+    # Always read fresh from disk so editor sees the latest full set of missions
+    filepath = BASE_DIR / ('missions_red.json' if color == 'red' else 'missions_blue.json')
+    data = load_missions(filepath)
     return jsonify({'missions': data['missions'], 'title': data.get('title', ''), 'color': color})
 
 
 @app.route('/api/editor/save', methods=['POST'])
 def editor_save():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed for full unrestricted access
     color = request.form.get('color', 'red')
     data = json.loads(request.form.get('missions', '[]'))
     if not data:
@@ -795,8 +776,7 @@ def editor_save():
 
 @app.route('/api/editor/upload', methods=['POST'])
 def editor_upload():
-    if request.form.get('password', '') != ADMIN_PASSWORD:
-        return jsonify({'error': 'Wrong password'}), 403
+    # Password requirement removed for full access
     file = request.files.get('image')
     if not file or not file.filename:
         return jsonify({'error': 'No image file'}), 400
@@ -818,6 +798,37 @@ def uploaded_file(filename):
 @app.route('/static/<path:filename>')
 def static_files(filename):
     return send_from_directory(str(BASE_DIR / 'static'), filename)
+
+@app.route('/qr-codes-v2/<path:filename>')
+def qr_codes_v2(filename):
+    return send_from_directory(str(BASE_DIR / 'qr-codes-v2'), filename)
+
+@app.route('/qr')
+def qr_page():
+    import json
+    red_m = json.load(open(BASE_DIR / 'missions_red.json'))['missions']
+    blue_m = json.load(open(BASE_DIR / 'missions_blue.json'))['missions']
+    html = '<h1>QR Codes - Print and Hide</h1>'
+    html += '<p>Run in terminal: <code>python3 generate_qr.py http://YOUR_IP:8080</code> (replace YOUR_IP with 192.168.8.101 or the tunnel URL)</p>'
+    html += '<h2>Pink/Red Team (10 QRs)</h2><ul>'
+    for m in red_m:
+        html += f'<li><a href="/qr-codes-v2/red-mission-{m["id"]:02d}.png" target="_blank">Red {m["id"]}: {m["title"]} - {m["location"]}</a></li>'
+    html += '</ul>'
+    html += '<h2>Blue Team (10 QRs)</h2><ul>'
+    for m in blue_m:
+        html += f'<li><a href="/qr-codes-v2/blue-mission-{m["id"]:02d}.png" target="_blank">Blue {m["id"]}: {m["title"]} - {m["location"]}</a></li>'
+    html += '</ul>'
+    html += '<p>Decoys are also in qr-codes-v2/.</p>'
+    return html
+
+# Serve mission JSONs directly for the editor to load without password barrier
+@app.route('/missions/red.json')
+def missions_red_json():
+    return send_from_directory(str(BASE_DIR), 'missions_red.json')
+
+@app.route('/missions/blue.json')
+def missions_blue_json():
+    return send_from_directory(str(BASE_DIR), 'missions_blue.json')
 
 
 if __name__ == '__main__':

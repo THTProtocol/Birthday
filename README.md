@@ -6,16 +6,31 @@ Interactive web-app version with QR codes, real-time scoring, decoy traps.
 
 ```bash
 cd Birthday
+./start.sh            # just localhost
+./start.sh --public   # localhost + public trycloudflare tunnel
+```
+
+Or manually:
+```bash
 python3 server.py
-# Server running at http://localhost:8080
+# In another terminal for public site:
+#   /home/kasparov/cloudflared tunnel --url http://localhost:8080
 ```
 
 Then visit:
-- Players: http://localhost:8080/
+- Players: http://localhost:8080/   (or the public URL)
 - Admin: http://localhost:8080/admin (password: cakeoclock2026)
+- Editor (missions): /editor
 
-**Live instance (current tunnel):** https://constant-phoenix-ends-priest.trycloudflare.com/
-(Quick tunnels rotate names on restart; run `python generate_qr.py YOUR_URL` after each new tunnel.)
+LAN (recommended for the hunt - same WiFi): http://192.168.8.101:8080
+(Print the qr-codes-v2/ that now point to this; players' phones join the WiFi/hotspot and scan.)
+
+Public tunnel (ephemeral, for testing or split locations): run `./start.sh --public` or cloudflared yourself, then `python3 generate_qr.py <that-url>` to update QRs.
+
+**Live instance (current tunnel):** https://nail-truly-journalist-rid.trycloudflare.com/
+(Quick tunnels rotate names on restart of cloudflared; after restart run `python generate_qr.py YOUR_NEW_URL` and reprint QRs.)
+
+Localhost: http://localhost:8080  (or your LAN IP e.g. http://192.168.8.101:8080 )
 
 ## Deployment
 

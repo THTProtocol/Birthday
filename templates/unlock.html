@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
 <title>Mission {{ mission.id }} - {{ mission.title }}</title>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
@@ -98,6 +102,20 @@
 
   /* ===== PHOTO UPLOAD ===== */
   .photo-section { margin-bottom:16px; }
+
+  /* Next directions revealed after photo attached (mobile flow) */
+  .next-dest { display: none; margin-top: 8px; }
+  .next-dest.visible { display: block; }
+
+  .next-dest .clue {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-deep);
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--gold);
+  }
   .photo-upload {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     padding:28px 16px; border:2px dashed rgba(255,255,255,0.12);
@@ -113,6 +131,11 @@
   .photo-upload .icon { font-size:36px; margin-bottom:8px; }
   .photo-upload .big-label { font-size:15px; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
   .photo-upload .sub-label { font-size:12px; color:var(--text-faint); }
+
+  /* Extra mobile polish */
+  .page { padding-top: 4px; }
+  .mission-title { font-size: 24px; }
+  .task-box { font-size: 15.5px; }
   .photo-upload .required-tag {
     font-size:10px; font-weight:700; color:var(--red); letter-spacing:1px;
     text-transform:uppercase; margin-bottom:6px;
@@ -194,6 +217,11 @@
 
 <div class="page">
 
+  <!-- Top hunt title for mobile QR flow -->
+  <div style="text-align:center; margin-bottom:8px; opacity:0.85;">
+    <span style="font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint);">Klaudusia's Birthday Hunt</span>
+  </div>
+
   <!-- Header -->
   <div class="header-badge">
     <div class="team-dot"></div>
@@ -218,18 +246,6 @@
         {{ mission.task }}
       </div>
 
-      <!-- NEXT DESTINATION - visible immediately on scan -->
-      <div class="next-dest">
-        <div class="label">Next Destination</div>
-        <div class="clue">
-          {% if next_hint %}
-            {{ next_hint }}
-          {% else %}
-            Congratulations! You have completed all missions. Race back to the admin!
-          {% endif %}
-        </div>
-      </div>
-
       <!-- Speed Bonus Info -->
       <div class="speed-bonus">
         <strong>&#x26A1; Speed Bonus:</strong> Under 5 min = +{{ timer_bonus_fast }} pts | Under 10 min = +{{ timer_bonus_medium }} pts | Over 10 min = no bonus
@@ -238,7 +254,7 @@
       <!-- Photo Upload -->
       <div class="photo-section">
         <div class="photo-upload" id="photo-box" onclick="document.getElementById('photo-input').click()">
-          <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto(this)">
+          <input type="file" id="photo-input" accept="image/*,video/*" capture="environment" onchange="previewPhoto(this)">
           <span class="required-tag">* Required *</span>
           <span class="icon">&#x1F4F7;</span>
           <span class="big-label">Tap to take a photo</span>
@@ -247,13 +263,29 @@
         </div>
       </div>
 
+      <!-- NEXT QR DIRECTIONS - revealed once photo is attached (mobile QR flow) -->
+      <div class="next-dest" id="next-dest">
+        <div class="label">Directions to the Next QR Code</div>
+        <div class="clue">
+          {% if next_hint %}
+            {{ next_hint }}
+          {% else %}
+            Congratulations! You have completed all missions. Race back to the admin!
+          {% endif %}
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-faint);">Go to the spot above and scan the next QR code to load the following task automatically.</div>
+      </div>
+
       <!-- Submit Button -->
       <button class="btn btn-primary" id="submit-btn" onclick="submitMission()">
-        Complete Mission +{{ base_points }} pts
+        Submit Photo &amp; Get Next QR Directions (+{{ base_points }} pts)
       </button>
 
       <!-- Done State -->
       <div class="done-badge" id="done-badge">&#x2705; Mission complete!</div>
+
+      <!-- Scan next directly from here (platform scanner) -->
+      <button onclick="startScanner()" style="margin:8px auto 4px; display:block; background:#ffd166; color:#111; border:none; padding:10px 18px; border-radius:10px; font-weight:600; font-size:14px; cursor:pointer;">📷 Scan the Next QR (using the directions above)</button>
 
       <!-- Back Link -->
       <button class="btn btn-back" onclick="window.location.href='/'">&#x2190; Back to Hunt Dashboard</button>
@@ -282,6 +314,16 @@ var TEAM_KEY = 'klaudusia_team';
 var MEMBER_KEY = 'klaudusia_member';
 var COLOR_KEY = 'klaudusia_color';
 
+// On load, if we have a team in localStorage, call to start/unlock the timer for this mission
+// (timer starts on scan of the QR, not on proof upload)
+var storedTeam = localStorage.getItem(TEAM_KEY);
+if (storedTeam) {
+  var f = new FormData();
+  f.append('team', storedTeam);
+  f.append('mission_id', MISSION_ID);
+  fetch('/api/unlock', {method:'POST', body:f}).catch(function(){});
+}
+
 // Auto-join from QR URL params: ?t=Team%20Pink&c=red
 (function() {
   var params = new URLSearchParams(window.location.search);
@@ -307,14 +349,43 @@ function showToast(msg, type) {
 
 function previewPhoto(input) {
   if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var box = document.getElementById('photo-box');
+  var preview = document.getElementById('photo-preview');
+
+  // Remove old preview if switching type
+  if (preview.tagName === 'VIDEO') {
+    preview.parentNode.removeChild(preview);
+    preview = document.createElement('img');
+    preview.id = 'photo-preview';
+    preview.className = 'photo-preview';
+    box.appendChild(preview);
+  }
+
   var reader = new FileReader();
   reader.onload = function(e) {
-    var box = document.getElementById('photo-box');
-    var preview = document.getElementById('photo-preview');
-    preview.src = e.target.result;
+    if (file.type.startsWith('video/')) {
+      // Create/replace with video preview
+      var video = document.createElement('video');
+      video.id = 'photo-preview';
+      video.className = 'photo-preview';
+      video.src = e.target.result;
+      video.controls = true;
+      video.style.maxHeight = '240px';
+      video.style.width = '100%';
+      video.style.borderRadius = 'var(--radius-md)';
+      if (preview && preview.parentNode) preview.parentNode.replaceChild(video, preview);
+      else box.appendChild(video);
+    } else {
+      preview.src = e.target.result;
+    }
     box.classList.add('has-photo');
+
+    // Once media attached on mobile, reveal the "next QR directions"
+    var nd = document.getElementById('next-dest');
+    if (nd) nd.classList.add('visible');
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(file);
 }
 
 async function submitMission() {
@@ -353,20 +424,82 @@ async function submitMission() {
       var done = document.getElementById('done-badge');
       done.classList.add('show');
 
+      // Make sure next directions are visible after submit
+      var nd = document.getElementById('next-dest');
+      if (nd) nd.classList.add('visible');
+
       if (IS_LAST) {
         var wb = document.getElementById('winner-banner');
         if (wb) wb.classList.add('show');
       }
 
-      setTimeout(function(){ window.location.href = '/'; }, 2000);
+      // Do not auto-redirect so player can read the next QR directions on this page.
+      // They can use the Back button or scan the next QR directly.
     } else {
-      btn.disabled = false; btn.textContent = 'Complete Mission +' + BASE_POINTS + ' pts';
+      btn.disabled = false; btn.textContent = 'Submit Photo & Get Next QR Directions +' + BASE_POINTS + ' pts';
       showToast(d.error || 'Something went wrong.', 'error');
     }
   } catch(e) {
-    btn.disabled = false; btn.textContent = 'Complete Mission +' + BASE_POINTS + ' pts';
+    btn.disabled = false; btn.textContent = 'Submit Photo & Get Next QR Directions +' + BASE_POINTS + ' pts';
     showToast('Network error. Try again.', 'error');
   }
+}
+</script>
+
+<!-- QR Scanner Modal (so you can scan the *next* QR directly from here after seeing directions) -->
+<div id="scanner-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:999; align-items:center; justify-content:center; flex-direction:column; padding:12px;">
+  <div style="background:#0f1011; padding:16px 18px; border-radius:16px; max-width:92vw; width:420px; text-align:center; border:1px solid rgba(255,255,255,0.08);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <h3 style="margin:0; font-size:16px; color:#ffd166;">📷 Scan Next QR</h3>
+      <button onclick="stopScanner()" style="background:none; border:none; color:#8a8f98; font-size:22px; line-height:1; cursor:pointer;">×</button>
+    </div>
+    <p style="font-size:12px; color:#8a8f98; margin:0 0 10px; line-height:1.3;">After you finish this task, use this to scan the next hidden QR using the clue above.</p>
+    <video id="scanner-video" style="width:100%; max-height:320px; background:#000; border-radius:10px; border:2px solid rgba(255,209,102,0.2);" autoplay playsinline></video>
+    <canvas id="scanner-canvas" style="display:none;"></canvas>
+    <div id="scanner-status" style="margin:10px 0 6px; font-size:13px; color:#d0d6e0; min-height:18px;">Align the QR — auto scans when in view</div>
+    <button onclick="stopScanner()" style="padding:8px 20px; font-size:13px; background:transparent; border:1px solid rgba(255,255,255,0.12); color:#d0d6e0; border-radius:8px;">Cancel</button>
+  </div>
+</div>
+
+<script>
+// Minimal in-page QR scanner for unlock page (re-uses jsQR)
+var uScannerStream = null, uScannerInterval = null, uVideo = null, uCanvas = null, uCtx = null;
+function startScanner() {
+  var modal = document.getElementById('scanner-modal'); if (!modal) return;
+  modal.style.display = 'flex';
+  uVideo = document.getElementById('scanner-video');
+  uCanvas = document.getElementById('scanner-canvas');
+  uCtx = uCanvas.getContext('2d');
+  var st = document.getElementById('scanner-status'); st.textContent = 'Starting camera...';
+  navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}}})
+    .then(function(stream){
+      uScannerStream = stream; uVideo.srcObject = stream; uVideo.setAttribute('playsinline', true);
+      uVideo.play().catch(function(){});
+      st.textContent = 'Scanning... point at the next task QR';
+      uScannerInterval = setInterval(uScanFrame, 180);
+    })
+    .catch(function(e){ st.textContent = 'Camera error: ' + (e.message || 'denied'); });
+}
+function uScanFrame() {
+  if (!uVideo || !uScannerStream || uVideo.paused || uVideo.ended) return;
+  if (uVideo.readyState !== uVideo.HAVE_ENOUGH_DATA) return;
+  uCanvas.height = uVideo.videoHeight; uCanvas.width = uVideo.videoWidth;
+  uCtx.drawImage(uVideo, 0, 0, uCanvas.width, uCanvas.height);
+  var data = uCtx.getImageData(0, 0, uCanvas.width, uCanvas.height);
+  var res = jsQR(data.data, data.width, data.height, {inversionAttempts: 'dontInvert'});
+  if (res && res.data) {
+    var url = res.data.trim();
+    var st = document.getElementById('scanner-status'); if (st) st.textContent = 'Found! Opening...';
+    stopScanner();
+    setTimeout(function(){ window.location.href = url; }, 350);
+  }
+}
+function stopScanner() {
+  if (uScannerInterval) { clearInterval(uScannerInterval); uScannerInterval = null; }
+  if (uScannerStream) { uScannerStream.getTracks().forEach(t => t.stop()); uScannerStream = null; }
+  var m = document.getElementById('scanner-modal'); if (m) m.style.display = 'none';
+  if (uVideo) uVideo.srcObject = null;
+  var s = document.getElementById('scanner-status'); if (s) s.textContent = 'Align the QR — auto scans when in view';
 }
 </script>
 

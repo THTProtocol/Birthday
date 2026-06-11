@@ -2,11 +2,15 @@
  RINGPARKEN HUNT  -  DEPLOYMENT & RUN GUIDE
 ======================================================================
 
-LIVE (current): https://constant-phoenix-ends-priest.trycloudflare.com/
-(The specific gave-prizes-joy-detected was a prior tunnel name; quick tunnels
-rotate. Regenerate QRs + restart cloudflared + server to publish updates.)
+LIVE (current): https://nail-truly-journalist-rid.trycloudflare.com/
+(Quick tunnels rotate on restart. Regenerate QRs with `python3 generate_qr.py https://...` + restart tunnel if needed.)
 
-YOU HAVE TWO OPTIONS TO RUN THIS:
+RECOMMENDED FOR STABLE PUBLIC WEBSITE + PERMANENT QR CODES:
+→ Deploy to a cheap Hetzner VPS + point a subdomain (e.g. hunt.yourdomain.com).
+   See the new detailed guide: hetzner-deploy.md
+   This gives you a fixed HTTPS URL forever. QR codes generated once will never need to change.
+
+OLD / TEMPORARY OPTIONS (still available):
 
 ╔══════════════════════════════════════════════════════════════════╗
 ║ OPTION 1: LOCAL WIFI (simplest)                ║
