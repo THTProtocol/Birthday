@@ -582,6 +582,9 @@ function previewDashPhoto(input) {
       $('btn-submit-proof').textContent = 'Submit Proof & Complete Mission';
       $('btn-submit-proof').disabled = false;
 
+      // Save a copy to the device gallery at the same time (so proofs are in Photos app + uploaded to hunt)
+      saveMediaToGallery(file);
+
       // reveal directions to next spot once photo/video is uploaded
       var nd = document.getElementById('next-dest');
       if (nd) {
@@ -592,6 +595,33 @@ function previewDashPhoto(input) {
       }
     };
     reader.readAsDataURL(file);
+  }
+}
+
+// Helper: save photo or video to the user's device gallery (downloads + tries Web Share for "Save to Photos")
+function saveMediaToGallery(file) {
+  if (!file) return;
+  try {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    const ext = file.type.startsWith('video/') ? 'mp4' : 'jpg';
+    a.download = `hunt-proof-${Date.now()}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+    // On modern mobile (iOS Safari, Android Chrome) this often lets user "Save to Photos" directly
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({
+        files: [file],
+        title: 'Birthday Hunt Proof',
+        text: 'Saved proof for the scavenger hunt'
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.log('Could not auto-save to gallery', e);
   }
 }
 
@@ -768,9 +798,9 @@ function loadAll() {
         $('current-mission-card').classList.remove('hidden');
         $('finished-card').classList.add('hidden');
 
-        // Show full task, timer (if started), and easy buttons (photo box + submit) for the current mission.
-        // Timer starts on create for #1 or on submit of previous (so 2nd/3rd+ have timer + buttons like the first).
-        // Scan QR is still used to "arrive" at location and for in-app unlock page flow.
+        // Always show the full task + timer (when we have a start time) + the easy buttons
+        // (photo/video box + submit after attach + skip) exactly like the great first task.
+        // This fixes the buttons for tasks after the 1st. The scan reminder is secondary.
         var times = ts.mission_times || {};
         $('cur-task').textContent = m.task || '';
         if (String(cur) in times) {
@@ -778,10 +808,34 @@ function loadAll() {
         } else {
           $('timer-display').textContent = '00:00';
         }
-        $('dash-photo-box').style.display = '';
-        $('btn-submit-proof').style.display = 'none';  // shown after preview attach
-        // Keep scan box visible as reminder for the physical QR at the location
-        // (the scan-hint-box is always in the HTML for current)
+
+        // Force clean + visible easy UI for this current task (photo box, submit ready, skip visible)
+        var pbox = $('dash-photo-box');
+        if (pbox) {
+          pbox.style.display = '';
+          pbox.classList.remove('has-photo');
+          var pprev = $('dash-photo-preview');
+          if (pprev) {
+            pprev.style.display = 'none';
+            pprev.src = '';
+            if (pprev.tagName === 'VIDEO') pprev.src = '';
+          }
+          var pl = pbox.querySelector('.photo-label');
+          if (pl) pl.textContent = 'Attach Photo or Video Proof';
+          var ps = pbox.querySelector('.photo-sub');
+          if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
+        }
+        var sbtn = $('btn-submit-proof');
+        if (sbtn) {
+          sbtn.style.display = 'none';
+          sbtn.textContent = 'Submit Proof & Complete Mission';
+          sbtn.disabled = false;
+        }
+        var skp = $('skip-btn');
+        if (skp) skp.style.display = '';
+
+        // scan-hint-box (the "scan QR at location" reminder) stays as a helpful note but doesn't block the main buttons
+
 
         // store next hint for reveal after photo upload
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';

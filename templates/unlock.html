@@ -381,11 +381,36 @@ function previewPhoto(input) {
     }
     box.classList.add('has-photo');
 
+    // Save copy to device gallery at the same time (proof goes to Photos + to the hunt server)
+    saveMediaToGallery(file);
+
     // Once media attached on mobile, reveal the "next QR directions"
     var nd = document.getElementById('next-dest');
     if (nd) nd.classList.add('visible');
   };
   reader.readAsDataURL(file);
+}
+
+// Helper to save the taken photo/video to the user's gallery (download + share for "Save to Photos")
+function saveMediaToGallery(file) {
+  if (!file) return;
+  try {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    const ext = file.type.startsWith('video/') ? 'mp4' : 'jpg';
+    a.download = `hunt-proof-${Date.now()}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Birthday Hunt Proof' }).catch(() => {});
+    }
+  } catch (e) {
+    console.log('gallery save failed', e);
+  }
 }
 
 async function submitMission() {
