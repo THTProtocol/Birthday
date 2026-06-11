@@ -366,19 +366,17 @@ def submit():
         ts['timing_bonus_earned'] = ts.get('timing_bonus_earned', 0) + timing_bonus
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Start timer for the new current mission immediately upon completing the previous
-    # (so every task has a running timer + easy buttons like the first one the user liked).
-    # The QR scan for a mission "confirms arrival" / unlocks detailed view, but the task is visible with timer from the moment it becomes current.
-    if ts['current_mission'] is not None:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    # Do NOT pre-set timer for the new current here.
+    # Timer for a mission starts ONLY when its QR is scanned (via /api/unlock, if it matches current).
+    # This enforces that you cannot go to the next step (see full task + timer + upload buttons) without scanning its QR (or skipping the previous task).
+    # After submit, directions (set in client) are shown, but the new current is locked behind "Scan the QR..." until scanned.
 
     # Clear blocks on successful completion
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
 
     save_state(state)
-    # Include next_mission_time so client can start timer immediately (no poll delay)
-    next_time = ts['mission_times'].get(str(ts['current_mission'])) if ts['current_mission'] else None
+    # next_mission_time is None because we don't pre-set; client will start timer only after scan sets it
     return jsonify({
         'correct': True,
         'score': ts['score'],
@@ -387,7 +385,7 @@ def submit():
         'elapsed_seconds': elapsed,
         'bonus_msg': bonus_msg,
         'next_mission': ts['current_mission'],
-        'next_mission_time': next_time,
+        'next_mission_time': None,
         'finished': ts['current_mission'] is None,
     })
 
@@ -449,24 +447,22 @@ def skip():
     ts['score'] -= penalty  # may be zero (penalty = 0, or free skip)
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Start timer for the new current mission immediately (consistent with submit, so 2nd/3rd have timer + buttons like the first)
-    if ts['current_mission'] is not None:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    # Do NOT pre-set timer here either.
+    # Timer only starts on scan of the mission's QR (or initial for first on create).
+    # Enforces scan (or skip of current) to access the next task's UI.
 
     # Clear blocks on successful skip
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
 
     save_state(state)
-    # Include next_mission_time so client can start timer immediately (no poll delay)
-    next_time = ts['mission_times'].get(str(ts['current_mission'])) if ts['current_mission'] else None
     return jsonify({
         'skipped': True,
         'penalty': penalty,
         'free_skip': free_skip,
         'score': ts['score'],
         'next_mission': ts['current_mission'],
-        'next_mission_time': next_time,
+        'next_mission_time': None,
         'finished': ts['current_mission'] is None,
     })
 

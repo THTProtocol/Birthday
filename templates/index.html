@@ -634,9 +634,11 @@ function submitProof() {
     return r.json();
   }).then(function(d){
     if (d.correct) {
-      // Set directions to the next only AFTER successful upload for this mission
-      // (and the mission was reached via scan or as current after previous).
-      // This makes directions appear only after scan + upload for the completed mission.
+      // Set directions to the next only AFTER successful upload for this mission.
+      // The new current (d.next_mission) will NOT have its timer yet (no pre-set on submit).
+      // loadAll() will therefore show the "Scan the QR code at the location shown in the directions above to unlock this mission and start the timer."
+      // + the persistent directions box.
+      // This enforces the rule: you cannot go to the next step (full task + timer + upload buttons) without scanning its QR (or skipping the previous task).
       persistentNextDirections = window.currentNextHint;
 
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
@@ -647,26 +649,7 @@ function submitProof() {
       if (pprev) { pprev.style.display = 'none'; pprev.src = ''; }
       photoInput.value = '';
       btn.style.display = 'none';
-      // Immediately show next mission with timer from server response
-      if (d.next_mission && MISSIONS[d.next_mission-1]) {
-        var nm = MISSIONS[d.next_mission-1];
-        $('cur-num').textContent = 'Mission '+d.next_mission+' of '+MISSIONS.length;
-        $('cur-title').textContent = nm.title;
-        $('cur-location').textContent = nm.location || '';
-        $('cur-task').textContent = nm.task || '';
-        $('current-mission-card').classList.remove('hidden');
-        $('finished-card').classList.add('hidden');
-        if (d.next_mission_time) {
-          var times = {};
-          times[d.next_mission.toString()] = d.next_mission_time;
-          startTimer(times, d.next_mission);
-        } else {
-          startTimer({}, d.next_mission);
-        }
-        window.currentNextHint = nm.next_hint || 'Find the next QR code at the location described after the previous task!';
-        // Mark this as a new mission so loadAll resets photo box cleanly
-        lastCurrentMission = -1;
-      }
+      lastCurrentMission = -1;  // force clean reset in loadAll for the new current (which will be in locked state until scanned)
       loadAll();
     } else {
       btn.disabled = false; btn.textContent = 'Submit Proof & Complete Mission';
@@ -841,53 +824,23 @@ function loadAll() {
         // (scan-hint-box is secondary non-blocking reminder only; main easy buttons + timer + prominent attach always shown for current like task 1).
         // Keep persistent next-dest logic.
         var times = ts.mission_times || {};
-        var startT = times[String(cur)];
-        $('cur-task').textContent = m.task || '';
-        // Always start/re-start the timer using mission_times from the server.
-        // The server pre-sets the time for every mission when it becomes current,
-        // so the timer is always available for the current mission.
-        if (startT) {
+        var unlocked = String(cur) in times;
+        if (unlocked) {
+          $('cur-task').textContent = m.task || '';
           startTimer(times, cur);
-        } else {
-          // Fallback: still show a running timer from now so the UI never shows empty timer
-          times[String(cur)] = new Date().toISOString();
-          startTimer(times, cur);
-        }
-
-        // Reset photo box state (remove has-photo, clear preview, reset labels) ONLY when a *new* current mission renders.
-        if (cur !== lastCurrentMission) {
-          var pbox = $('dash-photo-box');
-          if (pbox) {
-            pbox.style.display = '';
-            pbox.classList.remove('has-photo');
-            // Replace any video element back to the original <img> for clean state
-            var pprev = $('dash-photo-preview');
-            if (pprev && pprev.tagName === 'VIDEO') {
-              var newImg = document.createElement('img');
-              newImg.id = 'dash-photo-preview';
-              newImg.className = 'photo-preview';
-              newImg.src = '';
-              newImg.style.display = 'none';
-              pprev.parentNode.replaceChild(newImg, pprev);
-            } else if (pprev) {
-              pprev.style.display = 'none';
-              pprev.src = '';
-            }
-            var pl = pbox.querySelector('.photo-label');
-            if (pl) pl.textContent = '📸 Attach Photo or Video Proof';
-            var ps = pbox.querySelector('.photo-sub');
-            if (ps) ps.textContent = 'Take new or choose from your gallery. Required to complete.';
-            var pin = document.getElementById('dash-photo-input');
-            if (pin) pin.value = '';
-          }
-          var sbtn = $('btn-submit-proof');
-          if (sbtn) {
-            sbtn.style.display = 'none';
-            sbtn.textContent = 'Submit Proof & Complete Mission';
-            sbtn.disabled = false;
-          }
+          $('dash-photo-box').style.display = '';
+          $('btn-submit-proof').style.display = 'none';  // shown after preview attach
           var skp = $('skip-btn');
           if (skp) skp.style.display = '';
+        } else {
+          $('cur-task').innerHTML = '<em>Scan the QR code at the location shown in the directions above to unlock this mission and start the timer.</em>';
+          $('dash-photo-box').style.display = 'none';
+          $('btn-submit-proof').style.display = 'none';
+          var skp = $('skip-btn');
+          if (skp) skp.style.display = 'none';
+        }
+        // lastCurrentMission reset can stay for photo state if needed, but unlocked logic now enforces scan for task/buttons
+        if (cur !== lastCurrentMission) {
           lastCurrentMission = cur;
         }
         // (for same cur on poll/refresh: leave any in-progress photo attach state intact; directions handled by persistent)
@@ -950,12 +903,9 @@ function skipMission() {
     if (d.skipped) {
       $('score-display').textContent = d.score+' pts';
       showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error');
-      // Start timer for next mission immediately using server-provided time
-      if (d.next_mission && d.next_mission_time) {
-        var times = {};
-        times[d.next_mission.toString()] = d.next_mission_time;
-        startTimer(times, d.next_mission);
-      }
+      // No pre-set timer for next; loadAll will show it locked ("Scan QR to unlock") until its QR is scanned.
+      // Persistent directions (if any from previous upload) remain.
+      lastCurrentMission = -1;
       loadAll();
     }
     else { showToast(d.error, 'error'); }
