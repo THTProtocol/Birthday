@@ -212,11 +212,7 @@ def team_create():
     state['teams'][team_name]['created_at'] = now_iso()
     state['teams'][team_name]['captain'] = member_name
     state['teams'][team_name]['members'] = [{'name': member_name, 'joined_at': now_iso(), 'is_captain': True}]
-    # Start timer for the first mission immediately on team creation
-    ts = state['teams'][team_name]
-    ts['mission_times'] = ts.get('mission_times', {})
-    if str(ts['current_mission']) not in ts['mission_times']:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    # Timer for first mission starts ONLY when its QR is scanned (via /api/unlock), per spec.
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': team_color, 'members': state['teams'][team_name]['members']})
 
@@ -236,10 +232,7 @@ def team_join():
         if m['name'].lower() == member_name.lower():
             return jsonify({'error': 'That name is already in this team!'}), 400
     ts['members'].append({'name': member_name, 'joined_at': now_iso(), 'is_captain': False})
-    # Ensure timer is set for current mission (in case team was created before this fix)
-    ts['mission_times'] = ts.get('mission_times', {})
-    if str(ts['current_mission']) not in ts['mission_times']:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    # Timer starts only on actual QR scan for the mission (no pre-set on join).
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': ts.get('color', 'red'), 'members': ts['members']})
 
@@ -366,9 +359,9 @@ def submit():
         ts['timing_bonus_earned'] = ts.get('timing_bonus_earned', 0) + timing_bonus
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Record start time for next mission
-    if ts['current_mission'] is not None:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    # Note: do NOT pre-set timer for the new current_mission here.
+    # Timer for a mission starts ONLY when its QR is scanned (/api/unlock).
+    # This keeps directions visible after upload, and next task "locked" until scanned.
 
     # Clear blocks on successful completion
     ts['blocked_until'] = None
@@ -444,10 +437,7 @@ def skip():
     ts['score'] -= penalty  # may be zero (penalty = 0, or free skip)
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Record start time for next mission
-    if ts['current_mission'] is not None:
-        ts['mission_times'][str(ts['current_mission'])] = now_iso()
-
+    # Note: do NOT pre-set timer here. Timer only on scan of that mission's QR.
     # Clear blocks on successful skip
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
