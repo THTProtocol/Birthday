@@ -552,44 +552,47 @@ function doJoin() {
 function previewDashPhoto(input) {
   if (input.files && input.files[0]) {
     var file = input.files[0];
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var box = $('dash-photo-box');
-      var oldPreview = $('dash-photo-preview');
-      if (file.type.startsWith('video/')) {
-        var video = document.createElement('video');
-        video.id = 'dash-photo-preview';
-        video.src = e.target.result;
-        video.controls = true;
-        video.style.maxHeight = '200px';
-        video.style.width = '100%';
-        video.style.borderRadius = 'var(--radius-md)';
-        video.style.display = 'block';
-        if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(video, oldPreview);
-        else box.appendChild(video);
+    var box = $('dash-photo-box');
+    var oldPreview = $('dash-photo-preview');
+
+    // Show instant preview using createObjectURL (no waiting for FileReader)
+    var previewUrl = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
+      var video = document.createElement('video');
+      video.id = 'dash-photo-preview';
+      video.src = previewUrl;
+      video.controls = true;
+      video.style.maxHeight = '200px';
+      video.style.width = '100%';
+      video.style.borderRadius = 'var(--radius-md)';
+      video.style.display = 'block';
+      if (oldPreview && oldPreview.parentNode) oldPreview.parentNode.replaceChild(video, oldPreview);
+      else box.appendChild(video);
+    } else {
+      if (oldPreview && oldPreview.tagName === 'VIDEO') {
+        var img = document.createElement('img');
+        img.id = 'dash-photo-preview';
+        img.className = 'photo-preview';
+        img.style.display = 'block';
+        img.src = previewUrl;
+        oldPreview.parentNode.replaceChild(img, oldPreview);
       } else {
-        if (oldPreview && oldPreview.tagName === 'VIDEO') {
-          var img = document.createElement('img');
-          img.id = 'dash-photo-preview';
-          img.className = 'photo-preview';
-          img.style.display = 'block';
-          img.src = e.target.result;
-          oldPreview.parentNode.replaceChild(img, oldPreview);
-        } else {
-          oldPreview.src = e.target.result;
-          oldPreview.style.display = 'block';
-        }
+        oldPreview.src = previewUrl;
+        oldPreview.style.display = 'block';
       }
-      box.classList.add('has-photo');
-      var label = box.querySelector('.photo-label');
-      if (label) label.textContent = file.type.startsWith('video/') ? 'Video attached - uploading...' : 'Photo attached - uploading...';
+    }
+    box.classList.add('has-photo');
+    var label = box.querySelector('.photo-label');
+    if (label) label.textContent = file.type.startsWith('video/') ? 'Video attached - uploading...' : 'Photo attached - uploading...';
 
-      saveMediaToGallery(file);
+    // Start upload IMMEDIATELY (before any async preview rendering)
+    autoUploadProof(file);
 
-      // Auto-upload immediately on file select
-      autoUploadProof(file);
-    };
-    reader.readAsDataURL(file);
+    // Also save to device gallery
+    saveMediaToGallery(file);
+
+    // Clean up object URL after preview is done
+    setTimeout(function(){ URL.revokeObjectURL(previewUrl); }, 5000);
   }
 }
 
@@ -607,24 +610,20 @@ function autoUploadProof(file) {
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
       showToast('Uploaded! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
       if (statusEl) { statusEl.textContent = 'Upload complete!'; statusEl.style.color = 'var(--green)'; }
-      // Show directions
+      // Show directions to next QR
       persistentNextDirections = window.currentNextHint;
       var nd = document.getElementById('next-dest');
       if (nd) {
         nd.style.display = 'block';
         var clue = document.getElementById('next-clue-text');
-        if (clue) clue.textContent = persistentNextDirections || 'Find the next QR code at the location described after the previous task!';
+        if (clue) clue.textContent = persistentNextDirections || 'Follow the directions to find the next QR code';
       }
-      // Hide old submit button if it exists
-      var sbtn = $('btn-submit-proof');
-      if (sbtn) { sbtn.style.display = 'none'; }
       // Reset photo box
       $('dash-photo-box').classList.remove('has-photo');
       var pprev = $('dash-photo-preview');
       if (pprev) { pprev.style.display = 'none'; pprev.src = ''; }
       var pin = document.getElementById('dash-photo-input');
       if (pin) pin.value = '';
-      lastCurrentMission = -1;
       setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 3000);
       loadAll();
     } else {
@@ -683,10 +682,7 @@ function submitProof() {
   }).then(function(d){
     if (d.correct) {
       // Set directions to the next only AFTER successful upload for this mission.
-      // The new current (d.next_mission) will NOT have its timer yet (no pre-set on submit).
-      // loadAll() will therefore show the "Scan the QR code at the location shown in the directions above to unlock this mission and start the timer."
-      // + the persistent directions box.
-      // This enforces the rule: you cannot go to the next step (full task + timer + upload buttons) without scanning its QR (or skipping the previous task).
+      // The next mission will be locked until its QR is scanned.
       persistentNextDirections = window.currentNextHint;
 
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
@@ -697,7 +693,13 @@ function submitProof() {
       if (pprev) { pprev.style.display = 'none'; pprev.src = ''; }
       photoInput.value = '';
       btn.style.display = 'none';
-      lastCurrentMission = -1;  // force clean reset in loadAll for the new current (which will be in locked state until scanned)
+      // Show directions to next QR
+      var nd = document.getElementById('next-dest');
+      if (nd) {
+        nd.style.display = 'block';
+        var clue = document.getElementById('next-clue-text');
+        if (clue) clue.textContent = persistentNextDirections || 'Follow the directions to find the next QR code';
+      }
       loadAll();
     } else {
       btn.disabled = false; btn.textContent = 'Submit Proof & Complete Mission';
@@ -880,6 +882,8 @@ function loadAll() {
           $('btn-submit-proof').style.display = 'none';
           var skp = $('skip-btn');
           if (skp) skp.style.display = '';
+          // Hide scan-hint-box when unlocked (no need to remind to scan)
+          $('scan-hint-box').style.display = 'none';
           // Reset photo box cleanly on new current mission (only when unlocked)
           if (cur !== lastCurrentMission) {
             var pbox = $('dash-photo-box');
@@ -907,17 +911,15 @@ function loadAll() {
             lastCurrentMission = cur;
           }
         } else {
-          $('cur-task').innerHTML = '<em>Scan the QR code at the location shown in the directions above to unlock this mission and start the timer.</em>';
+          $('cur-task').innerHTML = '<em>Scan the QR code to unlock this mission</em>';
           $('dash-photo-box').style.display = 'none';
           $('btn-submit-proof').style.display = 'none';
           var skp = $('skip-btn');
           if (skp) skp.style.display = 'none';
+          // Show scan-hint-box prominently when locked (it IS the gate)
+          $('scan-hint-box').style.display = '';
           lastCurrentMission = cur;
         }
-
-        // scan-hint-box stays as non-blocking reminder (small, secondary — does NOT gate the main controls)
-        $('timer-bar').style.display = '';
-        $('scan-hint-box').style.display = '';
 
         // Timer always visible: show 00:00 when locked, running when unlocked
         if (unlocked) {
@@ -980,9 +982,7 @@ function skipMission() {
     if (d.skipped) {
       $('score-display').textContent = d.score+' pts';
       showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error');
-      // No pre-set timer for next; loadAll will show it locked ("Scan QR to unlock") until its QR is scanned.
-      // Persistent directions (if any from previous upload) remain.
-      lastCurrentMission = -1;
+      // Next mission will be locked until its QR is scanned
       loadAll();
     }
     else { showToast(d.error, 'error'); }
