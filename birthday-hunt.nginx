@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name birthday.klaudusia.com;  # stable subdomain on klaudusia.com (Hetzner VPS 178.105.76.81)
+    server_name birthday.hightable.pro;
 
     location / {
         include proxy_params;
