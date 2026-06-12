@@ -297,7 +297,7 @@
 
     <div class="scan-box" id="scan-hint-box">
       <span class="icon">&#x1F4F1;</span>
-      <span style="font-size:11px;color:rgba(255,209,102,0.6);">Scan the QR at this location to confirm arrival</span>
+      <span style="font-size:11px;color:rgba(255,209,102,0.6);">The clock is already ticking - find &amp; scan the QR to reveal your task!</span>
       <button onclick="startScanner(); return false;" class="btn" style="margin-top:6px; background:var(--gold); color:#111; font-size:12px; padding:6px 14px; width:auto; display:inline-flex; align-items:center; gap:4px; opacity:0.9;">
         📷 Scan QR
       </button>
@@ -886,7 +886,10 @@ function loadAll() {
         // (scan-hint-box is secondary non-blocking reminder only; main easy buttons + timer + prominent attach always shown for current like task 1).
         // Keep persistent next-dest logic.
         var times = ts.mission_times || {};
-        var unlocked = String(cur) in times;
+        var scans = ts.scans || {};
+        // Unlocked = QR actually scanned. The timer record alone no longer
+        // unlocks the task (the timer now starts at the previous upload).
+        var unlocked = String(cur) in scans;
         if (unlocked) {
           $('cur-task').textContent = m.task || '';
           startTimer(times, cur);
@@ -933,16 +936,15 @@ function loadAll() {
           lastCurrentMission = cur;
         }
 
-        // Timer always visible: show 00:00 when locked, running when unlocked
-        if (unlocked) {
+        // Timer always visible and ALWAYS running once it has a start record:
+        // it starts the moment the previous proof uploads, so QR hunting and
+        // travel count against the speed bonus - even while the task is locked.
+        if (String(cur) in times) {
           startTimer(times, cur);
         } else {
-          // Stop any interval left over from the previous mission so it
-          // doesn't keep overwriting the locked 00:00 display
+          // No start record yet (shouldn't happen mid-game) - show frozen 00:00
           if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
           $('timer-display').textContent = '00:00';
-          var tinfo = $('timer-bar').querySelector('.timing-info');
-          if (tinfo) tinfo.innerHTML = 'Timer starts when you scan the QR &middot; <span>&lt;5 min = +5 pts</span>';
         }
 
         // store next hint for reveal after photo upload (for current task)

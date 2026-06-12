@@ -146,7 +146,8 @@ def _default_team(team_color='red'):
         'active_bonus': None,
         'bonus_offer': None,
         'bonus_history': [],
-        'mission_times': {},
+        'mission_times': {},   # timer start per mission (set when previous proof uploads)
+        'scans': {},           # QR-scan record per mission (set by /api/unlock; gates submission)
         'timing_bonus_earned': 0,
         'blocked_until': None,
         'active_cooldown': None,
@@ -262,11 +263,14 @@ def team_create():
     state['teams'][team_name]['created_at'] = now_iso()
     state['teams'][team_name]['captain'] = member_name
     state['teams'][team_name]['members'] = [{'name': member_name, 'joined_at': now_iso(), 'is_captain': True}]
-    # Start timer for the first mission on team creation (so first task has running timer from the start)
+    # Start timer for the first mission on team creation (so first task has running timer
+    # from the start) and mark it scanned - mission 1 is handed out, no QR hunt needed.
     ts = state['teams'][team_name]
     ts['mission_times'] = ts.get('mission_times', {})
+    ts['scans'] = ts.get('scans', {})
     if str(ts['current_mission']) not in ts['mission_times']:
         ts['mission_times'][str(ts['current_mission'])] = now_iso()
+    ts['scans'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True, 'team': team_name, 'color': team_color, 'members': state['teams'][team_name]['members']})
 
@@ -309,9 +313,18 @@ def api_unlock():
     if qr_color and qr_color != ts.get('color', 'red'):
         return jsonify({'error': "That QR belongs to the other team! Find your own team's QR."}), 400
     if mission_id == ts.get('current_mission'):
+        ts['scans'] = ts.get('scans', {})
         ts['mission_times'] = ts.get('mission_times', {})
+        changed = False
+        if str(mission_id) not in ts['scans']:
+            ts['scans'][str(mission_id)] = now_iso()
+            changed = True
+        # Timer normally starts when the previous proof uploads; this is only a
+        # fallback so a missing record never leaves a mission without a timer.
         if str(mission_id) not in ts['mission_times']:
             ts['mission_times'][str(mission_id)] = now_iso()
+            changed = True
+        if changed:
             save_state(state)
     return jsonify({'success': True})
 
@@ -348,9 +361,9 @@ def submit():
         return jsonify({'error': f'Complete Mission {ts["current_mission"]} first.'}), 400
 
     # ── QR scan requirement (server-side) ─────────────────────
-    # /api/unlock records the scan time in mission_times; without that record
-    # the QR was never scanned, so the mission cannot be completed.
-    if str(mission_id) not in ts.get('mission_times', {}):
+    # /api/unlock records the scan in `scans`; without that record the QR was
+    # never scanned, so the mission cannot be completed.
+    if str(mission_id) not in ts.get('scans', {}):
         return jsonify({'error': 'Scan the QR code at this location first to unlock this mission.'}), 400
 
     # ── Block checks ──────────────────────────────────────────
@@ -433,17 +446,19 @@ def submit():
         ts['timing_bonus_earned'] = ts.get('timing_bonus_earned', 0) + timing_bonus
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Do NOT pre-set timer for the new current here.
-    # Timer for a mission starts ONLY when its QR is scanned (via /api/unlock, if it matches current).
-    # This enforces that you cannot go to the next step (see full task + timer + upload buttons) without scanning its QR (or skipping the previous task).
-    # After submit, directions (set in client) are shown, but the new current is locked behind "Scan the QR..." until scanned.
+    # The next mission's TIMER starts right now - travel and QR hunting count
+    # against the speed bonus. The task itself stays locked until its QR is
+    # scanned (`scans` record via /api/unlock).
+    next_time = None
+    if ts['current_mission'] is not None:
+        next_time = now_iso()
+        ts['mission_times'][str(ts['current_mission'])] = next_time
 
     # Clear blocks on successful completion
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
 
     save_state(state)
-    # next_mission_time is None because we don't pre-set; client will start timer only after scan sets it
     return jsonify({
         'correct': True,
         'score': ts['score'],
@@ -452,7 +467,7 @@ def submit():
         'elapsed_seconds': elapsed,
         'bonus_msg': bonus_msg,
         'next_mission': ts['current_mission'],
-        'next_mission_time': None,
+        'next_mission_time': next_time,
         'finished': ts['current_mission'] is None,
     })
 
@@ -514,9 +529,12 @@ def skip():
     ts['score'] -= penalty  # may be zero (penalty = 0, or free skip)
     ts['current_mission'] = mission_id + 1 if mission_id < len(missions) else None
 
-    # Do NOT pre-set timer here either.
-    # Timer only starts on scan of the mission's QR (or initial for first on create).
-    # Enforces scan (or skip of current) to access the next task's UI.
+    # Skipping starts the next mission's timer too - the clock never pauses.
+    # The task itself stays locked until its QR is scanned.
+    next_time = None
+    if ts['current_mission'] is not None:
+        next_time = now_iso()
+        ts['mission_times'][str(ts['current_mission'])] = next_time
 
     # Clear blocks on successful skip
     ts['blocked_until'] = None
@@ -529,7 +547,7 @@ def skip():
         'free_skip': free_skip,
         'score': ts['score'],
         'next_mission': ts['current_mission'],
-        'next_mission_time': None,
+        'next_mission_time': next_time,
         'finished': ts['current_mission'] is None,
     })
 
@@ -757,10 +775,13 @@ def admin_start():
     state = load_state()
     state['started'] = True
     state['start_time'] = now_iso()
-    # Record mission start times for all teams
+    # Record mission start times for all teams (and unlock their current
+    # mission - the game master is handing out the first task).
     for ts in state['teams'].values():
         ts['mission_times'] = ts.get('mission_times', {})
+        ts['scans'] = ts.get('scans', {})
         ts['mission_times'][str(ts['current_mission'])] = now_iso()
+        ts['scans'][str(ts['current_mission'])] = now_iso()
     save_state(state)
     return jsonify({'success': True})
 
