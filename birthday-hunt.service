@@ -9,7 +9,7 @@ WorkingDirectory=/opt/birthday-hunt
 Environment="PATH=/opt/birthday-hunt/venv/bin"
 Environment="SECRET_KEY=change-this-to-a-long-random-string"
 Environment="ADMIN_PASSWORD=your-secure-password-here"
-ExecStart=/opt/birthday-hunt/venv/bin/gunicorn --workers 3 --bind unix:/opt/birthday-hunt/birthday-hunt.sock -m 007 server:app
+ExecStart=/opt/birthday-hunt/venv/bin/gunicorn --workers 3 --timeout 180 --bind unix:/opt/birthday-hunt/birthday-hunt.sock -m 007 server:app
 Restart=always
 
 [Install]

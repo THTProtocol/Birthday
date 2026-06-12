@@ -313,15 +313,63 @@ var IS_LAST = {{ 'true' if is_last else 'false' }};
 var TEAM_KEY = 'klaudusia_team';
 var MEMBER_KEY = 'klaudusia_member';
 var COLOR_KEY = 'klaudusia_color';
+var persistentNextDirections = null;
+
+// Register the QR scan with the server (idempotent). The server starts the
+// mission timer on first scan and refuses wrong-color QRs.
+function registerScan() {
+  var t = localStorage.getItem(TEAM_KEY);
+  if (!t) return Promise.resolve();
+  var f = new FormData();
+  f.append('team', t);
+  f.append('mission_id', MISSION_ID);
+  f.append('color', MISSION_COLOR);
+  return fetch('/api/unlock', {method:'POST', body:f}).catch(function(){});
+}
 
 // On load, if we have a team in localStorage, call to start/unlock the timer for this mission
 // (timer starts on scan of the QR, not on proof upload)
 var storedTeam = localStorage.getItem(TEAM_KEY);
 if (storedTeam) {
-  var f = new FormData();
-  f.append('team', storedTeam);
-  f.append('mission_id', MISSION_ID);
-  fetch('/api/unlock', {method:'POST', body:f}).catch(function(){});
+  registerScan();
+  // Gate the page: only the team's CURRENT mission may be worked on here.
+  fetch('/api/team/' + encodeURIComponent(storedTeam)).then(function(r){return r.json();}).then(function(d){
+    if (!d || d.error) return;
+    var done = d.completed && d.completed[String(MISSION_ID)];
+    var passed = done || (d.skipped && d.skipped[String(MISSION_ID)]) || (d.current_mission && MISSION_ID < d.current_mission) || d.current_mission === null;
+    var teamColor = d.color || 'red';
+    if (teamColor !== MISSION_COLOR) {
+      gateMission("This QR belongs to the OTHER team! Find your own team's QR codes.");
+    } else if (passed) {
+      // Already behind the team - show the onward directions (a team that
+      // skipped still needs this mission's clue to find the next QR).
+      if (done) {
+        var badge = document.getElementById('done-badge');
+        if (badge) badge.classList.add('show');
+      }
+      gateMission('Your team already passed this mission. Use the directions below to reach your next QR!');
+      var nd = document.getElementById('next-dest');
+      if (nd) nd.classList.add('visible');
+    } else if (d.current_mission && MISSION_ID > d.current_mission) {
+      gateMission('This is Mission ' + MISSION_ID + ', but your team is on Mission ' + d.current_mission + '. No skipping ahead - finish (or skip) your current mission first!');
+    }
+  }).catch(function(){});
+}
+
+// Hide the task + submit button and show a lock notice instead
+function gateMission(message) {
+  var task = document.querySelector('.task-box');
+  if (task) {
+    task.innerHTML = '<strong style="color:var(--gold);display:block;margin-bottom:6px;">&#x1F512; Locked</strong>' +
+      '<span style="color:var(--text-secondary);"></span>';
+    task.querySelector('span').textContent = message;
+  }
+  var btn = document.getElementById('submit-btn');
+  if (btn) btn.style.display = 'none';
+  var photo = document.querySelector('.photo-section');
+  if (photo) photo.style.display = 'none';
+  var speed = document.querySelector('.speed-bonus');
+  if (speed) speed.style.display = 'none';
 }
 
 // Auto-join from QR URL params: ?t=Team%20Pink&c=red
@@ -431,6 +479,10 @@ async function submitMission() {
 
   var btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = 'Uploading...';
+
+  // Ensure the scan is registered server-side before submitting (idempotent;
+  // covers the case where the unlock call at page load failed on flaky signal).
+  try { await registerScan(); } catch(e) {}
 
   var f = new FormData();
   f.append('team', team);

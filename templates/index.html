@@ -596,14 +596,16 @@ function previewDashPhoto(input) {
   }
 }
 
-function autoUploadProof(file) {
+function autoUploadProof(file, attempt) {
+  attempt = attempt || 0;
   var curId = parseInt($('cur-num').textContent.match(/\d+/)[0]);
   var statusEl = $('upload-status');
-  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Uploading...'; }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--green)'; statusEl.textContent = 'Uploading...'; }
   var f = new FormData();
   f.append('team', myTeam); f.append('mission_id', curId); f.append('photo', file);
   fetch('/api/submit', {method:'POST', body:f}).then(function(r){
-    if (!r.ok) { return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+(t||r.statusText)); }); }
+    // Server replies with JSON for both success and rejection (400) - parse either way.
+    // Only a non-JSON body (proxy error page etc.) falls through to catch for retry.
     return r.json();
   }).then(function(d){
     if (d.correct) {
@@ -627,16 +629,26 @@ function autoUploadProof(file) {
       setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 3000);
       loadAll();
     } else {
+      // Server rejected the submission (scan required, cooldown, wrong mission...).
+      // Show the reason and let the player retry manually - never auto-retry a rejection.
       if (statusEl) { statusEl.textContent = 'Error: ' + (d.error || 'upload failed'); statusEl.style.color = 'var(--red)'; }
       showToast(d.error || 'Upload failed. Try again.', 'error');
-      setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 4000);
+      var lbl = $('dash-photo-box').querySelector('.photo-label');
+      if (lbl) lbl.textContent = '📸 Attach Photo or Video Proof';
+      setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 5000);
     }
   }).catch(function(e){
-    if (statusEl) { statusEl.textContent = 'Network error - retrying...'; statusEl.style.color = 'var(--red)'; }
-    showToast('Network error: ' + (e.message || e) + '. Retrying...', 'error');
     console.error('autoUploadProof error', e);
-    // Retry once after 2 seconds
-    setTimeout(function(){ autoUploadProof(file); }, 2000);
+    if (attempt < 2) {
+      if (statusEl) { statusEl.textContent = 'Connection hiccup - retrying...'; statusEl.style.color = 'var(--red)'; }
+      setTimeout(function(){ autoUploadProof(file, attempt + 1); }, 2500);
+    } else {
+      if (statusEl) { statusEl.textContent = 'Upload failed - check your signal, then tap the box to try again.'; statusEl.style.color = 'var(--red)'; }
+      showToast('Upload failed after 3 tries. Check your connection and attach the file again.', 'error');
+      var lbl2 = $('dash-photo-box').querySelector('.photo-label');
+      if (lbl2) lbl2.textContent = '📸 Attach Photo or Video Proof';
+      setTimeout(function(){ if (statusEl) statusEl.style.display = 'none'; }, 6000);
+    }
   });
 }
 
@@ -879,7 +891,6 @@ function loadAll() {
           $('cur-task').textContent = m.task || '';
           startTimer(times, cur);
           $('dash-photo-box').style.display = '';
-          $('btn-submit-proof').style.display = 'none';
           var skp = $('skip-btn');
           if (skp) skp.style.display = '';
           // Hide scan-hint-box when unlocked (no need to remind to scan)
@@ -902,7 +913,7 @@ function loadAll() {
                 pprev.src = '';
               }
               var pl = pbox.querySelector('.photo-label');
-              if (pl) pl.textContent = '📸 Attach Photo Proof';
+              if (pl) pl.textContent = '📸 Attach Photo or Video Proof';
               var ps = pbox.querySelector('.photo-sub');
               if (ps) ps.textContent = 'Any teammate can upload. Required to complete.';
               var pin = document.getElementById('dash-photo-input');
@@ -913,9 +924,10 @@ function loadAll() {
         } else {
           $('cur-task').innerHTML = '<em>Scan the QR code to unlock this mission</em>';
           $('dash-photo-box').style.display = 'none';
-          $('btn-submit-proof').style.display = 'none';
+          // Skip stays available even when locked: it is the only other way
+          // forward (worth 0 pts) if the team cannot find the QR.
           var skp = $('skip-btn');
-          if (skp) skp.style.display = 'none';
+          if (skp) skp.style.display = '';
           // Show scan-hint-box prominently when locked (it IS the gate)
           $('scan-hint-box').style.display = '';
           lastCurrentMission = cur;
@@ -925,7 +937,12 @@ function loadAll() {
         if (unlocked) {
           startTimer(times, cur);
         } else {
+          // Stop any interval left over from the previous mission so it
+          // doesn't keep overwriting the locked 00:00 display
+          if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
           $('timer-display').textContent = '00:00';
+          var tinfo = $('timer-bar').querySelector('.timing-info');
+          if (tinfo) tinfo.innerHTML = 'Timer starts when you scan the QR &middot; <span>&lt;5 min = +5 pts</span>';
         }
 
         // store next hint for reveal after photo upload (for current task)
@@ -982,7 +999,9 @@ function skipMission() {
     if (d.skipped) {
       $('score-display').textContent = d.score+' pts';
       showToast(d.free_skip ? 'FAST TRACK! Skipped for free!' : 'Skipped (0 pts)', d.free_skip?'gold':'error');
-      // Next mission will be locked until its QR is scanned
+      // Reveal directions to the next QR - a skipping team still needs to find it.
+      // The next mission itself stays locked until its QR is scanned.
+      persistentNextDirections = window.currentNextHint || null;
       loadAll();
     }
     else { showToast(d.error, 'error'); }

@@ -300,10 +300,14 @@ def api_unlock():
     The timer starts on scan, not on proof upload."""
     team = request.form.get('team', '').strip()
     mission_id = int(request.form.get('mission_id', '0'))
+    qr_color = request.form.get('color', '').strip()
     state = load_state()
     if team not in state['teams']:
         return jsonify({'error': 'Team not found'}), 400
     ts = state['teams'][team]
+    # A QR belonging to the other team must not unlock this team's mission
+    if qr_color and qr_color != ts.get('color', 'red'):
+        return jsonify({'error': "That QR belongs to the other team! Find your own team's QR."}), 400
     if mission_id == ts.get('current_mission'):
         ts['mission_times'] = ts.get('mission_times', {})
         if str(mission_id) not in ts['mission_times']:
@@ -342,6 +346,12 @@ def submit():
 
     if mission_id != ts['current_mission']:
         return jsonify({'error': f'Complete Mission {ts["current_mission"]} first.'}), 400
+
+    # ── QR scan requirement (server-side) ─────────────────────
+    # /api/unlock records the scan time in mission_times; without that record
+    # the QR was never scanned, so the mission cannot be completed.
+    if str(mission_id) not in ts.get('mission_times', {}):
+        return jsonify({'error': 'Scan the QR code at this location first to unlock this mission.'}), 400
 
     # ── Block checks ──────────────────────────────────────────
     if ts.get('blocked_until'):
