@@ -61,7 +61,26 @@
     80%  { transform:translate(88vw,-2vh) rotate(-8deg) scale(1); }
     100% { transform:translate(112vw,-10vh) rotate(8deg) scale(1.02); }
   }
-  @media (prefers-reduced-motion: reduce) { .balloon, .butterfly { animation:none; display:none; } }
+  .flower {
+    position:absolute; top:-12vh; opacity:.9; will-change:transform;
+    animation-name:fallDown; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  @keyframes fallDown {
+    0%   { transform:translateY(0) translateX(0) rotate(0deg); }
+    25%  { transform:translateY(32vh) translateX(20px) rotate(95deg); }
+    50%  { transform:translateY(64vh) translateX(-16px) rotate(190deg); }
+    75%  { transform:translateY(95vh) translateX(12px) rotate(290deg); }
+    100% { transform:translateY(126vh) translateX(-8px) rotate(380deg); }
+  }
+  .sparkle {
+    position:absolute; opacity:.6; will-change:transform,opacity;
+    animation-name:twinkle; animation-timing-function:ease-in-out; animation-iteration-count:infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { transform:scale(.65) rotate(-8deg); opacity:.3; }
+    50%     { transform:scale(1.2) rotate(8deg); opacity:.95; }
+  }
+  @media (prefers-reduced-motion: reduce) { .balloon, .butterfly, .flower, .sparkle { animation:none; display:none; } }
   .top-bar { width:100%; max-width:560px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px; }
   .top-bar a { color:var(--text-faint); text-decoration:none; font-size:12px; font-weight:500; transition:color .15s; }
   .top-bar a:hover { color:var(--text-muted); }
@@ -69,10 +88,12 @@
   .score-pill.pink { background:var(--pink-bg); color:var(--pink); border-color:rgba(255,93,165,0.25); }
   .score-pill.blue { background:var(--blue-bg); color:var(--blue); border-color:rgba(77,166,255,0.25); }
   .score-pill.gold { background:var(--gold-bg); color:var(--gold); border-color:rgba(255,209,102,0.25); }
-  .glass-card, .step-card { width:100%; max-width:520px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:32px 28px; margin-bottom:12px; text-align:center; box-shadow:var(--shadow-lg); animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+  .glass-card, .step-card { width:100%; max-width:520px; background:var(--bg-panel); backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:32px 28px; margin-bottom:12px; text-align:center; box-shadow:var(--shadow-lg); animation:fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
   .step-emoji { font-size:52px; line-height:1; margin-bottom:10px; }
-  .step-title { font-size:26px; font-weight:700; letter-spacing:-0.8px; margin-bottom:6px; color:var(--text-primary); }
+  .step-title { font-size:26px; font-weight:800; letter-spacing:-0.8px; margin-bottom:6px; background:linear-gradient(95deg,#d6336c 10%,#9c36b5 55%,#e6499f 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .step-emoji { animation:bob 2.6s ease-in-out infinite; display:inline-block; }
+  @keyframes bob { 0%,100% { transform:translateY(0) rotate(-3deg); } 50% { transform:translateY(-7px) rotate(3deg); } }
   .step-sub, .step-subtitle { font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.5; }
   .field-label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-faint); margin-bottom:8px; text-align:center; }
   .input-field { width:100%; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--border-standard); background:var(--bg-deep); color:var(--text-primary); font-size:15px; font-family:inherit; outline:none; text-align:center; transition:border-color .2s, box-shadow .2s; }
@@ -81,15 +102,15 @@
   .btn { display:block; width:100%; padding:16px; border-radius:var(--radius-md); border:none; font-size:15px; font-weight:600; cursor:pointer; transition:all .15s; text-align:center; margin-top:14px; font-family:inherit; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
   .btn:active { transform:scale(0.97); }
   .btn:disabled { opacity:.35; cursor:not-allowed; transform:none !important; }
-  .btn-primary { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(230,73,159,0.35); }
+  .btn-primary { background:linear-gradient(135deg,#ff5fae,#d6336c); color:#fff; box-shadow:0 2px 10px rgba(230,73,159,0.35); }
   .btn-primary:hover:not(:disabled) { background:var(--accent-hover); transform:translateY(-1px); box-shadow:0 4px 14px rgba(230,73,159,0.40); }
   .btn-ghost { background:transparent; border:1px solid var(--border-standard); color:var(--text-muted); margin-top:10px; font-size:13px; padding:10px; }
   .btn-ghost:hover:not(:disabled) { border-color:var(--border-hover); color:var(--text-secondary); background:rgba(232,62,140,0.05); }
   .btn-back { display:inline-flex; align-items:center; gap:6px; width:auto; padding:8px 14px; font-size:12px; margin-top:0; }
-  .btn-pink { background:var(--pink); color:#fff; box-shadow:0 2px 10px var(--pink-glow); }
-  .btn-pink:hover:not(:disabled) { background:#ff6eb5; transform:translateY(-1px); }
-  .btn-blue { background:var(--blue); color:#fff; box-shadow:0 2px 10px var(--blue-glow); }
-  .btn-blue:hover:not(:disabled) { background:#5cb0ff; transform:translateY(-1px); }
+  .btn-pink { background:linear-gradient(135deg,#ff6cb5,#e6398f); color:#fff; box-shadow:0 3px 14px var(--pink-glow); }
+  .btn-pink:hover:not(:disabled) { filter:brightness(1.07); transform:translateY(-1px); }
+  .btn-blue { background:linear-gradient(135deg,#52a9ff,#1976d2); color:#fff; box-shadow:0 3px 14px var(--blue-glow); }
+  .btn-blue:hover:not(:disabled) { filter:brightness(1.07); transform:translateY(-1px); }
   .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
   .choice-btn { padding:24px 14px; border-radius:var(--radius-lg); border:1px solid var(--border-standard); background:var(--bg-deep); color:var(--text-primary); cursor:pointer; transition:all .2s; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
   .choice-btn:hover { border-color:var(--accent-bright); background:var(--bg-surface); transform:translateY(-2px); box-shadow:var(--shadow-md); }
@@ -119,7 +140,7 @@
   .rules-mini { font-size:11px; color:var(--text-faint); text-align:center; margin-top:18px; line-height:1.6; }
   .rules-mini span { color:var(--gold); font-weight:500; }
   .error-msg { font-size:13px; color:var(--red); text-align:center; margin-top:8px; min-height:20px; }
-  .hunt-card { width:100%; max-width:560px; background:var(--bg-panel); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:24px 22px; margin-bottom:12px; box-shadow:var(--shadow-md); transition:all .2s cubic-bezier(0.4,0,0.2,1); }
+  .hunt-card { width:100%; max-width:560px; background:var(--bg-panel); backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3); border:1px solid var(--border-standard); border-radius:var(--radius-xl); padding:24px 22px; margin-bottom:12px; box-shadow:var(--shadow-md); transition:all .2s cubic-bezier(0.4,0,0.2,1); }
   .hunt-card:hover { border-color:var(--border-hover); transform:translateY(-1px); box-shadow:var(--shadow-lg); }
   .current-mission { border-color:var(--gold); background:linear-gradient(145deg, #ffffff, #fff3f9); position:relative; }
   .current-mission::before { content:''; position:absolute; top:-1px; left:20px; right:20px; height:3px; background:linear-gradient(to right, var(--gold), var(--pink)); border-radius:3px; opacity:0.6; }
@@ -149,8 +170,8 @@
   .lb-pts.blue { color:var(--blue); }
   .lb-progress { width:100%; height:2px; background:var(--bg-surface); border-radius:1px; margin-top:6px; overflow:hidden; }
   .lb-fill { height:100%; border-radius:1px; transition:width .5s ease; }
-  .lb-fill.pink { background:var(--pink); }
-  .lb-fill.blue { background:var(--blue); }
+  .lb-fill.pink { background:linear-gradient(90deg,#ff8ec2,#e6398f); }
+  .lb-fill.blue { background:linear-gradient(90deg,#7cbdff,#1976d2); }
   .current-mission { border-width:1.5px; }
   .current-mission.pink { border-color:rgba(232,62,140,0.45); background:linear-gradient(145deg,#ffffff,#ffeef6); }
   .current-mission.blue { border-color:rgba(30,136,229,0.45); background:linear-gradient(145deg,#ffffff,#eef6ff); }
@@ -172,8 +193,8 @@
   .btn-skip:hover { background:var(--gold-bg); }
   .progress-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(40px,1fr)); gap:6px; }
   .prog-chip { aspect-ratio:1; border-radius:var(--radius-md); border:1px solid var(--border-standard); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; background:var(--bg-deep); color:var(--text-faint); }
-  .prog-chip.done-pink { background:var(--pink-bg); border-color:rgba(255,93,165,0.25); color:var(--pink); }
-  .prog-chip.done-blue { background:var(--blue-bg); border-color:rgba(77,166,255,0.25); color:var(--blue); }
+  .prog-chip.done-pink { background:linear-gradient(135deg,rgba(232,62,140,0.20),rgba(232,62,140,0.08)); border-color:rgba(232,62,140,0.35); color:var(--pink); }
+  .prog-chip.done-blue { background:linear-gradient(135deg,rgba(30,136,229,0.20),rgba(30,136,229,0.08)); border-color:rgba(30,136,229,0.35); color:var(--blue); }
   .prog-chip.current { animation:pulse 2.5s infinite; color:var(--gold); border-color:rgba(255,209,102,0.25); font-size:13px; }
   @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,0.15);} 50%{box-shadow:0 0 10px 3px rgba(255,209,102,0.08);} }
   .bonus-offer { background:linear-gradient(135deg, rgba(192,132,252,0.08), rgba(255,209,102,0.04)); border:1px solid rgba(192,132,252,0.25); border-radius:var(--radius-xl); padding:20px; margin:10px 0; text-align:center; animation:cardPulse 2s ease-in-out infinite alternate; }
@@ -214,18 +235,38 @@
 <body>
 
 <div class="party-sky" aria-hidden="true">
-  <span class="balloon" style="left:4%; font-size:34px; animation-duration:19s; animation-delay:-3s;">&#x1F388;</span>
-  <span class="balloon" style="left:15%; font-size:46px; animation-duration:24s; animation-delay:-11s; filter:hue-rotate(210deg);">&#x1F388;</span>
-  <span class="balloon" style="left:28%; font-size:30px; animation-duration:17s; animation-delay:-7s; filter:hue-rotate(45deg);">&#x1F388;</span>
-  <span class="balloon" style="left:41%; font-size:40px; animation-duration:26s; animation-delay:-15s; filter:hue-rotate(300deg);">&#x1F388;</span>
-  <span class="balloon" style="left:55%; font-size:33px; animation-duration:21s; animation-delay:-5s; filter:hue-rotate(120deg);">&#x1F388;</span>
-  <span class="balloon" style="left:67%; font-size:48px; animation-duration:28s; animation-delay:-19s;">&#x1F388;</span>
-  <span class="balloon" style="left:79%; font-size:36px; animation-duration:18s; animation-delay:-9s; filter:hue-rotate(250deg);">&#x1F388;</span>
-  <span class="balloon" style="left:90%; font-size:30px; animation-duration:23s; animation-delay:-13s; filter:hue-rotate(80deg);">&#x1F388;</span>
-  <span class="butterfly" style="top:18%; left:-6%; animation-duration:16s; animation-delay:-2s;">&#x1F98B;</span>
-  <span class="butterfly" style="top:38%; left:-6%; font-size:20px; animation-duration:22s; animation-delay:-9s;">&#x1F98B;</span>
-  <span class="butterfly" style="top:60%; left:-6%; font-size:30px; animation-duration:19s; animation-delay:-14s;">&#x1F98B;</span>
-  <span class="butterfly" style="top:78%; left:-6%; font-size:22px; animation-duration:25s; animation-delay:-5s;">&#x1F98B;</span>
+  <span class="balloon" style="left:2%; font-size:34px; animation-duration:19s; animation-delay:-3s;">&#x1F388;</span>
+  <span class="balloon" style="left:10%; font-size:46px; animation-duration:24s; animation-delay:-11s; filter:hue-rotate(210deg);">&#x1F388;</span>
+  <span class="balloon" style="left:19%; font-size:28px; animation-duration:17s; animation-delay:-7s; filter:hue-rotate(45deg);">&#x1F388;</span>
+  <span class="balloon" style="left:28%; font-size:40px; animation-duration:26s; animation-delay:-15s; filter:hue-rotate(300deg);">&#x1F388;</span>
+  <span class="balloon" style="left:37%; font-size:32px; animation-duration:21s; animation-delay:-5s; filter:hue-rotate(120deg);">&#x1F388;</span>
+  <span class="balloon" style="left:46%; font-size:44px; animation-duration:28s; animation-delay:-19s;">&#x1F388;</span>
+  <span class="balloon" style="left:55%; font-size:30px; animation-duration:16s; animation-delay:-1s; filter:hue-rotate(180deg);">&#x1F388;</span>
+  <span class="balloon" style="left:64%; font-size:38px; animation-duration:22s; animation-delay:-12s; filter:hue-rotate(330deg);">&#x1F388;</span>
+  <span class="balloon" style="left:73%; font-size:48px; animation-duration:27s; animation-delay:-8s; filter:hue-rotate(250deg);">&#x1F388;</span>
+  <span class="balloon" style="left:82%; font-size:33px; animation-duration:18s; animation-delay:-14s; filter:hue-rotate(80deg);">&#x1F388;</span>
+  <span class="balloon" style="left:90%; font-size:42px; animation-duration:25s; animation-delay:-21s; filter:hue-rotate(150deg);">&#x1F388;</span>
+  <span class="balloon" style="left:96%; font-size:29px; animation-duration:20s; animation-delay:-6s; filter:hue-rotate(280deg);">&#x1F388;</span>
+  <span class="butterfly" style="top:12%; left:-6%; animation-duration:16s; animation-delay:-2s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:28%; left:-6%; font-size:20px; animation-duration:22s; animation-delay:-9s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:44%; left:-6%; font-size:30px; animation-duration:19s; animation-delay:-14s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:58%; left:-6%; font-size:23px; animation-duration:26s; animation-delay:-20s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:72%; left:-6%; font-size:22px; animation-duration:25s; animation-delay:-5s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:86%; left:-6%; font-size:27px; animation-duration:21s; animation-delay:-11s;">&#x1F98B;</span>
+  <span class="flower" style="left:6%; font-size:24px; animation-duration:18s; animation-delay:-4s;">&#x1F338;</span>
+  <span class="flower" style="left:18%; font-size:19px; animation-duration:23s; animation-delay:-12s;">&#x1F337;</span>
+  <span class="flower" style="left:31%; font-size:26px; animation-duration:16s; animation-delay:-8s;">&#x1F33A;</span>
+  <span class="flower" style="left:45%; font-size:21px; animation-duration:21s; animation-delay:-17s;">&#x1F33C;</span>
+  <span class="flower" style="left:58%; font-size:25px; animation-duration:19s; animation-delay:-2s;">&#x1F338;</span>
+  <span class="flower" style="left:70%; font-size:18px; animation-duration:24s; animation-delay:-14s;">&#x1F4AE;</span>
+  <span class="flower" style="left:82%; font-size:23px; animation-duration:17s; animation-delay:-6s;">&#x1F337;</span>
+  <span class="flower" style="left:93%; font-size:20px; animation-duration:22s; animation-delay:-10s;">&#x1F338;</span>
+  <span class="sparkle" style="top:14%; left:12%; font-size:16px; animation-duration:2.6s;">&#x2728;</span>
+  <span class="sparkle" style="top:24%; left:84%; font-size:20px; animation-duration:3.4s; animation-delay:-1s;">&#x2728;</span>
+  <span class="sparkle" style="top:46%; left:6%; font-size:14px; animation-duration:3s; animation-delay:-2s;">&#x2728;</span>
+  <span class="sparkle" style="top:58%; left:91%; font-size:17px; animation-duration:2.8s; animation-delay:-0.6s;">&#x2728;</span>
+  <span class="sparkle" style="top:76%; left:14%; font-size:15px; animation-duration:3.6s; animation-delay:-1.8s;">&#x2728;</span>
+  <span class="sparkle" style="top:88%; left:78%; font-size:19px; animation-duration:2.4s; animation-delay:-1.2s;">&#x2728;</span>
 </div>
 
 <div class="top-bar">
@@ -472,6 +513,28 @@ function showToast(msg, type) {
   setTimeout(function(){ t.className = 'toast'; }, 4000);
 }
 
+// Celebration confetti burst (emoji rain from the top, auto-cleans)
+function partyBurst() {
+  try {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var pieces = ['🎉','🎊','💖','✨','🌸','🎈'];
+    for (var i = 0; i < 26; i++) {
+      (function(){
+        var el = document.createElement('span');
+        el.textContent = pieces[Math.floor(Math.random()*pieces.length)];
+        var dur = 1.8 + Math.random()*1.4;
+        el.style.cssText = 'position:fixed;left:'+(8+Math.random()*84)+'vw;top:-6vh;font-size:'+(16+Math.random()*18)+'px;z-index:9999;pointer-events:none;opacity:1;will-change:transform;transition:transform '+dur+'s cubic-bezier(.25,.46,.45,.94), opacity .5s '+(dur-0.4)+'s;';
+        document.body.appendChild(el);
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          el.style.transform = 'translateY('+(75+Math.random()*45)+'vh) translateX('+(Math.random()*160-80)+'px) rotate('+(Math.random()*720-360)+'deg)';
+          el.style.opacity = '0';
+        });});
+        setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, dur*1000 + 800);
+      })();
+    }
+  } catch(e) {}
+}
+
 function setError(id, msg) { var e = $(id); e.textContent = msg || ''; e.style.color = msg ? 'var(--red)' : 'transparent'; }
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
@@ -587,6 +650,7 @@ function doJoin() {
           MISSIONS = mdata || [];
           show('hunt-area'); loadAll();
           showToast('Welcome, Captain ' + myMember + '! Get hunting!', 'success');
+          partyBurst();
         });
       } else { setError('pick-error', d.error || 'Failed to create'); }
     });
@@ -655,6 +719,7 @@ function autoUploadProof(file, attempt) {
     if (d.correct) {
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
       showToast('Uploaded! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      partyBurst();
       if (statusEl) { statusEl.textContent = 'Upload complete!'; statusEl.style.color = 'var(--green)'; }
       // Show directions to next QR
       persistentNextDirections = window.currentNextHint;
@@ -997,6 +1062,10 @@ function loadAll() {
         $('current-mission-card').classList.add('hidden');
         $('finished-card').classList.remove('hidden');
         $('final-score').textContent = newScore+' pts';
+        if (!window._celebratedFinish) {
+          window._celebratedFinish = true;
+          partyBurst(); setTimeout(partyBurst, 700); setTimeout(partyBurst, 1500);
+        }
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         persistentNextDirections = null;  // no more next directions when finished
         lastCurrentMission = null;

@@ -59,7 +59,26 @@
     75%  { transform:translate(84vw,-7vh) rotate(10deg) scale(1.06); }
     100% { transform:translate(112vw,-3vh) rotate(-8deg) scale(1); }
   }
-  @media (prefers-reduced-motion: reduce) { .balloon, .butterfly { animation:none; display:none; } }
+  .flower {
+    position:absolute; top:-12vh; opacity:.9; will-change:transform;
+    animation-name:fallDown; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  @keyframes fallDown {
+    0%   { transform:translateY(0) translateX(0) rotate(0deg); }
+    25%  { transform:translateY(32vh) translateX(20px) rotate(95deg); }
+    50%  { transform:translateY(64vh) translateX(-16px) rotate(190deg); }
+    75%  { transform:translateY(95vh) translateX(12px) rotate(290deg); }
+    100% { transform:translateY(126vh) translateX(-8px) rotate(380deg); }
+  }
+  .sparkle {
+    position:absolute; opacity:.6; will-change:transform,opacity;
+    animation-name:twinkle; animation-timing-function:ease-in-out; animation-iteration-count:infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { transform:scale(.65) rotate(-8deg); opacity:.3; }
+    50%     { transform:scale(1.2) rotate(8deg); opacity:.95; }
+  }
+  @media (prefers-reduced-motion: reduce) { .balloon, .butterfly, .flower, .sparkle { animation:none; display:none; } }
 
   .page { width:100%; max-width:500px; }
 
@@ -67,7 +86,8 @@
   .header-badge {
     display:flex; align-items:center; gap:10px; padding:10px 16px; margin-bottom:10px;
     background:var(--bg-panel); border:1px solid var(--border-standard);
-    border-radius:var(--radius-lg);
+    backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3);
+    border-radius:var(--radius-lg); box-shadow:0 4px 14px rgba(173,40,105,0.12);
   }
   .header-badge .team-dot {
     width:12px; height:12px; border-radius:50%;
@@ -81,7 +101,9 @@
   /* ===== MISSION CARD ===== */
   .card {
     width:100%; background:var(--bg-panel); border:1px solid var(--border-standard);
+    backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3);
     border-radius:var(--radius-xl); overflow:hidden; margin-bottom:10px;
+    box-shadow:0 8px 28px rgba(173,40,105,0.16);
   }
   .card-body { padding:20px; }
 
@@ -190,8 +212,8 @@
   .btn:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; }
 
   .btn-primary {
-    background:var(--green); color:#0f1011;
-    box-shadow:0 2px 12px var(--green-glow);
+    background:linear-gradient(135deg,#16c98d,#0a8f63); color:#fff;
+    box-shadow:0 3px 14px var(--green-glow);
     margin-bottom:10px;
   }
   .btn-primary:active:not(:disabled) { background:#34d399; }
@@ -249,9 +271,23 @@
   <span class="balloon" style="left:46%; font-size:30px; animation-duration:18s; animation-delay:-8s; filter:hue-rotate(300deg);">&#x1F388;</span>
   <span class="balloon" style="left:68%; font-size:44px; animation-duration:24s; animation-delay:-17s; filter:hue-rotate(120deg);">&#x1F388;</span>
   <span class="balloon" style="left:87%; font-size:34px; animation-duration:21s; animation-delay:-6s; filter:hue-rotate(45deg);">&#x1F388;</span>
+  <span class="balloon" style="left:36%; font-size:36px; animation-duration:23s; animation-delay:-10s; filter:hue-rotate(180deg);">&#x1F388;</span>
+  <span class="balloon" style="left:57%; font-size:28px; animation-duration:17s; animation-delay:-2s; filter:hue-rotate(330deg);">&#x1F388;</span>
+  <span class="balloon" style="left:78%; font-size:40px; animation-duration:27s; animation-delay:-20s; filter:hue-rotate(250deg);">&#x1F388;</span>
   <span class="butterfly" style="top:22%; left:-6%; animation-duration:18s; animation-delay:-3s;">&#x1F98B;</span>
+  <span class="butterfly" style="top:40%; left:-6%; font-size:21px; animation-duration:23s; animation-delay:-16s;">&#x1F98B;</span>
   <span class="butterfly" style="top:52%; left:-6%; font-size:19px; animation-duration:24s; animation-delay:-12s;">&#x1F98B;</span>
   <span class="butterfly" style="top:74%; left:-6%; font-size:28px; animation-duration:20s; animation-delay:-7s;">&#x1F98B;</span>
+  <span class="flower" style="left:9%; font-size:23px; animation-duration:18s; animation-delay:-5s;">&#x1F338;</span>
+  <span class="flower" style="left:27%; font-size:19px; animation-duration:23s; animation-delay:-13s;">&#x1F337;</span>
+  <span class="flower" style="left:48%; font-size:25px; animation-duration:16s; animation-delay:-9s;">&#x1F33A;</span>
+  <span class="flower" style="left:66%; font-size:20px; animation-duration:21s; animation-delay:-3s;">&#x1F33C;</span>
+  <span class="flower" style="left:84%; font-size:24px; animation-duration:19s; animation-delay:-15s;">&#x1F338;</span>
+  <span class="flower" style="left:95%; font-size:18px; animation-duration:24s; animation-delay:-7s;">&#x1F4AE;</span>
+  <span class="sparkle" style="top:16%; left:10%; font-size:16px; animation-duration:2.8s;">&#x2728;</span>
+  <span class="sparkle" style="top:34%; left:88%; font-size:19px; animation-duration:3.2s; animation-delay:-1.2s;">&#x2728;</span>
+  <span class="sparkle" style="top:62%; left:7%; font-size:14px; animation-duration:2.5s; animation-delay:-0.8s;">&#x2728;</span>
+  <span class="sparkle" style="top:82%; left:90%; font-size:17px; animation-duration:3.5s; animation-delay:-2s;">&#x2728;</span>
 </div>
 
 <div class="page">
@@ -434,6 +470,28 @@ function showToast(msg, type) {
   setTimeout(function(){ t.className = 'toast'; }, 4000);
 }
 
+// Celebration confetti burst (emoji rain from the top, auto-cleans)
+function partyBurst() {
+  try {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var pieces = ['🎉','🎊','💖','✨','🌸','🎈'];
+    for (var i = 0; i < 26; i++) {
+      (function(){
+        var el = document.createElement('span');
+        el.textContent = pieces[Math.floor(Math.random()*pieces.length)];
+        var dur = 1.8 + Math.random()*1.4;
+        el.style.cssText = 'position:fixed;left:'+(8+Math.random()*84)+'vw;top:-6vh;font-size:'+(16+Math.random()*18)+'px;z-index:9999;pointer-events:none;opacity:1;will-change:transform;transition:transform '+dur+'s cubic-bezier(.25,.46,.45,.94), opacity .5s '+(dur-0.4)+'s;';
+        document.body.appendChild(el);
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          el.style.transform = 'translateY('+(75+Math.random()*45)+'vh) translateX('+(Math.random()*160-80)+'px) rotate('+(Math.random()*720-360)+'deg)';
+          el.style.opacity = '0';
+        });});
+        setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, dur*1000 + 800);
+      })();
+    }
+  } catch(e) {}
+}
+
 function previewPhoto(input) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -534,6 +592,8 @@ async function submitMission() {
     if (d.correct) {
       var bonusStr = d.timing_bonus > 0 ? ' (+'+d.timing_bonus+' speed bonus)' : '';
       showToast('Done! +' + d.earned + ' pts' + bonusStr + (d.bonus_msg||''), 'success');
+      partyBurst();
+      if (IS_LAST) { setTimeout(partyBurst, 700); setTimeout(partyBurst, 1500); }
 
       btn.style.display = 'none';
       var done = document.getElementById('done-badge');
