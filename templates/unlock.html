@@ -9,29 +9,38 @@
 <title>Mission {{ mission.id }} - {{ mission.title }}</title>
 <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
-    --bg-deep:#fff0f7; --bg-page:#ffd3e8; --bg-panel:rgba(255,255,255,0.93); --bg-surface:#ffe4f1;
-    --text-primary:#54173a; --text-secondary:#7a2f56; --text-muted:#a05c7d; --text-faint:#bd8aa3;
-    --border-standard:rgba(214,51,132,0.18); --border-hover:rgba(214,51,132,0.32);
-    --pink:#e83e8c; --pink-bg:rgba(232,62,140,0.10); --pink-glow:rgba(232,62,140,0.30);
-    --blue:#1e88e5; --blue-bg:rgba(30,136,229,0.10); --blue-glow:rgba(30,136,229,0.30);
-    --gold:#c2780a; --gold-bg:rgba(255,179,71,0.16); --gold-glow:rgba(255,170,60,0.35);
-    --green:#0c9b6c; --green-bg:rgba(16,185,129,0.12); --green-glow:rgba(16,185,129,0.25);
-    --red:#e03131; --red-bg:rgba(224,49,49,0.10);
-    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px;
-    --team-color: {{ '#e83e8c' if color == 'red' else '#1e88e5' }};
+    --bg-deep:#fff4fa; --bg-page:#ffd3e8; --bg-panel:rgba(255,255,255,0.78); --bg-surface:#ffe9f4;
+    --text-primary:#4a1230; --text-secondary:#7a2f56; --text-muted:#9c577b; --text-faint:#a86b8e;
+    --border-standard:rgba(214,51,132,0.16); --border-hover:rgba(214,51,132,0.34);
+    --pink:#e0348a; --pink-bg:rgba(232,62,140,0.10); --pink-glow:rgba(232,62,140,0.32);
+    --blue:#1e7fe0; --blue-bg:rgba(30,136,229,0.10); --blue-glow:rgba(30,136,229,0.32);
+    --gold:#b8860b; --gold-bg:rgba(255,184,77,0.20); --gold-glow:rgba(255,170,60,0.40);
+    --green:#0a9466; --green-bg:rgba(16,185,129,0.14); --green-glow:rgba(16,185,129,0.28);
+    --red:#dc2f2f; --red-bg:rgba(224,49,49,0.10);
+    --font-display:'Fredoka','Inter',-apple-system,system-ui,sans-serif;
+    --shadow-sm:0 1px 3px rgba(173,40,105,0.10); --shadow-md:0 6px 18px rgba(173,40,105,0.14); --shadow-lg:0 14px 38px rgba(173,40,105,0.20);
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:22px;
+    --team-color: {{ '#e0348a' if color == 'red' else '#1e7fe0' }};
     --team-bg: {{ 'rgba(232,62,140,0.08)' if color == 'red' else 'rgba(30,136,229,0.08)' }};
-    --team-glow: {{ 'rgba(232,62,140,0.30)' if color == 'red' else 'rgba(30,136,229,0.30)' }};
+    --team-glow: {{ 'rgba(232,62,140,0.32)' if color == 'red' else 'rgba(30,136,229,0.32)' }};
+    --team-grad: {{ 'linear-gradient(135deg,#ff7ec2,#e0348a)' if color == 'red' else 'linear-gradient(135deg,#5cb0ff,#1e7fe0)' }};
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
   body {
     font-family:'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background:linear-gradient(160deg,#ffe3f0 0%,#ffc9e2 38%,#ffd9ef 70%,#ffeaf5 100%) fixed;
+    background:
+      radial-gradient(1000px 560px at 10% -8%, rgba(255,255,255,0.85), transparent 60%),
+      radial-gradient(820px 520px at 94% 2%, rgba(186,140,255,0.38), transparent 58%),
+      radial-gradient(760px 560px at 50% 118%, rgba(255,179,71,0.28), transparent 60%),
+      linear-gradient(160deg,#ffe6f3 0%,#ffc4df 42%,#ffd0ec 74%,#ffe9f6 100%);
+    background-attachment:fixed;
     color:var(--text-primary); min-height:100dvh;
-    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center;
-    padding:8px; padding-bottom:env(safe-area-inset-bottom, 16px);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    display:flex; flex-direction:column; align-items:center;
+    padding:10px; padding-bottom:env(safe-area-inset-bottom, 16px);
   }
   /* ===== Birthday sky: floating balloons & butterflies ===== */
   .party-sky { position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
@@ -100,26 +109,28 @@
 
   /* ===== MISSION CARD ===== */
   .card {
-    width:100%; background:var(--bg-panel); border:1px solid var(--border-standard);
-    backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3);
-    border-radius:var(--radius-xl); overflow:hidden; margin-bottom:10px;
-    box-shadow:0 8px 28px rgba(173,40,105,0.16);
+    width:100%; position:relative; background:var(--bg-panel); border:1px solid rgba(255,255,255,0.6);
+    backdrop-filter:blur(20px) saturate(1.7); -webkit-backdrop-filter:blur(20px) saturate(1.7);
+    border-radius:var(--radius-xl); overflow:hidden; margin-bottom:12px;
+    box-shadow:var(--shadow-lg);
   }
-  .card-body { padding:20px; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--team-grad); }
+  .card-body { padding:22px 20px; }
 
   .mission-title {
-    font-size:22px; font-weight:700; letter-spacing:-0.5px; line-height:1.2; margin-bottom:4px;
+    font-family:var(--font-display); font-size:26px; font-weight:700; letter-spacing:-0.2px; line-height:1.15; margin-bottom:6px; color:var(--text-primary);
   }
   .mission-loc {
     display:inline-flex; align-items:center; gap:6px;
-    font-size:12px; color:var(--gold); background:var(--gold-bg);
-    padding:5px 12px; border-radius:999px; font-weight:500; margin-bottom:14px;
+    font-size:12.5px; color:#8a5a00; background:var(--gold-bg);
+    padding:6px 13px; border-radius:999px; font-weight:700; margin-bottom:14px;
+    border:1px solid rgba(184,134,11,0.22);
   }
 
   .task-box {
     font-size:15px; line-height:1.7; color:var(--text-secondary);
-    padding:16px; background:var(--bg-deep); border-radius:var(--radius-md);
-    border-left:3px solid var(--team-color); margin-bottom:16px;
+    padding:16px 18px; background:rgba(255,255,255,0.6); border-radius:var(--radius-lg);
+    border-left:4px solid var(--team-color); margin-bottom:16px; box-shadow:var(--shadow-sm);
   }
 
   .task-image {
@@ -144,9 +155,10 @@
 
   /* ===== SPEED BONUS ===== */
   .speed-bonus {
-    background:var(--green-bg); border:1px solid rgba(16,185,129,0.15);
-    border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px;
-    font-size:13px; color:var(--text-muted); text-align:center; line-height:1.5;
+    background:linear-gradient(135deg,rgba(16,185,129,0.16),rgba(16,185,129,0.06));
+    border:1px solid rgba(10,148,102,0.22);
+    border-radius:var(--radius-lg); padding:12px 14px; margin-bottom:16px;
+    font-size:13px; color:var(--text-secondary); text-align:center; line-height:1.5;
   }
   .speed-bonus strong { color:var(--green); }
 
@@ -168,10 +180,12 @@
   }
   .photo-upload {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:28px 16px; border:2px dashed rgba(214,51,132,0.30);
+    padding:30px 16px; border:2.5px dashed rgba(232,62,140,0.35);
     border-radius:var(--radius-lg); cursor:pointer; transition:all .2s;
-    background:var(--bg-deep); text-align:center; min-height:100px;
+    background:linear-gradient(160deg,rgba(255,255,255,0.7),rgba(255,238,246,0.5)); text-align:center; min-height:104px;
+    box-shadow:var(--shadow-sm);
   }
+  .photo-upload:hover { border-color:var(--pink); transform:translateY(-1px); }
   .photo-upload:active { transform:scale(0.98); }
   .photo-upload.has-photo {
     border-style:solid; border-color:var(--green); background:var(--green-bg);
@@ -184,7 +198,7 @@
 
   /* Extra mobile polish */
   .page { padding-top: 4px; }
-  .mission-title { font-size: 24px; }
+  .mission-title { font-size: 26px; }
   .task-box { font-size: 15.5px; }
   .photo-upload .required-tag {
     font-size:10px; font-weight:700; color:var(--red); letter-spacing:1px;
@@ -239,8 +253,8 @@
     border:1px solid var(--team-color); border-radius:var(--radius-xl); margin-bottom:10px;
   }
   .winner-banner.show { display:block; }
-  .winner-banner .trophy { font-size:52px; display:block; margin-bottom:8px; }
-  .winner-banner h2 { font-size:22px; font-weight:700; color:var(--team-color); margin-bottom:4px; }
+  .winner-banner .trophy { font-size:58px; display:block; margin-bottom:8px; filter:drop-shadow(0 6px 12px var(--gold-glow)); }
+  .winner-banner h2 { font-family:var(--font-display); font-size:25px; font-weight:700; color:var(--team-color); margin-bottom:4px; }
   .winner-banner p { font-size:14px; color:var(--text-muted); }
 
   /* ===== TOAST ===== */
@@ -638,7 +652,7 @@ async function submitMission() {
     <p style="font-size:12px; color:#8a8f98; margin:0 0 10px; line-height:1.3;">After you finish this task, use this to scan the next hidden QR using the clue above.</p>
     <video id="scanner-video" style="width:100%; max-height:320px; background:#000; border-radius:10px; border:2px solid rgba(255,209,102,0.2);" autoplay playsinline></video>
     <canvas id="scanner-canvas" style="display:none;"></canvas>
-    <div id="scanner-status" style="margin:10px 0 6px; font-size:13px; color:#d0d6e0; min-height:18px;">Align the QR — auto scans when in view</div>
+    <div id="scanner-status" style="margin:10px 0 6px; font-size:13px; color:#d0d6e0; min-height:18px;">Align the QR, auto scans when in view</div>
     <button onclick="stopScanner()" style="padding:8px 20px; font-size:13px; background:transparent; border:1px solid rgba(255,255,255,0.12); color:#d0d6e0; border-radius:8px;">Cancel</button>
   </div>
 </div>
@@ -681,8 +695,67 @@ function stopScanner() {
   if (uScannerStream) { uScannerStream.getTracks().forEach(t => t.stop()); uScannerStream = null; }
   var m = document.getElementById('scanner-modal'); if (m) m.style.display = 'none';
   if (uVideo) uVideo.srcObject = null;
-  var s = document.getElementById('scanner-status'); if (s) s.textContent = 'Align the QR — auto scans when in view';
+  var s = document.getElementById('scanner-status'); if (s) s.textContent = 'Align the QR, auto scans when in view';
 }
+</script>
+
+<!-- Tap-to-pop background balloons -->
+<script>
+(function(){
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function popBalloon(el){
+    if (el.dataset.popping) return;
+    el.dataset.popping = '1';
+    var r = el.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var bits = ['🎉','✨','💖','🎊','⭐','🌸'];
+    for (var i=0;i<8;i++){
+      (function(){
+        var p = document.createElement('span');
+        p.textContent = bits[Math.floor(Math.random()*bits.length)];
+        var dur = rnd(0.5,0.95);
+        p.style.cssText = 'position:fixed;left:'+cx+'px;top:'+cy+'px;font-size:'+rnd(12,20)+'px;'
+          + 'z-index:9999;pointer-events:none;transform:translate(-50%,-50%);opacity:1;'
+          + 'transition:transform '+dur+'s cubic-bezier(.22,1,.36,1), opacity '+dur+'s ease-out;';
+        document.body.appendChild(p);
+        var ang = rnd(0, Math.PI*2), dist = rnd(34,86);
+        var dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          p.style.transform = 'translate(-50%,-50%) translate('+dx+'px,'+dy+'px) rotate('+rnd(-180,180)+'deg)';
+          p.style.opacity = '0';
+        });});
+        setTimeout(function(){ if (p.parentNode) p.parentNode.removeChild(p); }, dur*1000+120);
+      })();
+    }
+    el.style.transition = 'transform .14s ease-out, opacity .14s ease-out';
+    el.style.transform = 'scale(1.45)';
+    el.style.opacity = '0';
+    if (navigator.vibrate) { try { navigator.vibrate(25); } catch(e){} }
+    setTimeout(function(){ recycle(el); }, 230);
+  }
+  function recycle(el){
+    el.style.transition = 'none';
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.style.left = rnd(2,94) + '%';
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'floatUp ' + rnd(16,28) + 's linear infinite';
+    el.style.animationDelay = '0s';
+    delete el.dataset.popping;
+  }
+  function init(){
+    var balloons = document.querySelectorAll('.party-sky .balloon');
+    for (var i=0;i<balloons.length;i++){
+      var b = balloons[i];
+      b.style.pointerEvents = 'auto';
+      b.style.cursor = 'pointer';
+      b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); popBalloon(this); });
+    }
+  }
+  if (document.readyState !== 'loading') init();
+  else document.addEventListener('DOMContentLoaded', init);
+})();
 </script>
 
 </body>

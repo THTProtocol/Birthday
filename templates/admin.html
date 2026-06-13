@@ -16,8 +16,11 @@
     --accent:#5e6ad2; --accent-hover:#828fff; --accent-bright:#7170ff;
     --green:#10b981; --green-bg:rgba(16,185,129,0.10); --green-glow:rgba(16,185,129,0.20);
     --gold:#ffd166; --gold-bg:rgba(255,209,102,0.08); --gold-glow:rgba(255,209,102,0.20);
-    --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10);
+    --red:#ff6b6b; --red-bg:rgba(255,107,107,0.10); --danger:#ff6b6b;
     --purple:#c084fc; --purple-bg:rgba(192,132,252,0.10);
+    --accent2:#ff8ec2;
+    --pink:#ff5da5; --pink-bg:rgba(255,93,165,0.12);
+    --blue:#4da6ff; --blue-bg:rgba(77,166,255,0.12);
     --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
     --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
   }
@@ -171,7 +174,8 @@
 <div class="section">
   <h2>Bonus Card Deck</h2>
   <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-    Offer a bonus card to a team. They must accept or ignore (once accepted, it must be executed).
+    Offer a bonus card to a team. They must accept or ignore. Once accepted it must be completed -
+    if a team takes a card and does NOT complete it, hit <strong>Failed (-2)</strong> in Team Active States to dock 2 points.
   </p>
 
   <div class="bonus-card-row">
@@ -188,7 +192,7 @@
   </div>
   <div class="bonus-card-row">
     <span class="name">STEAL POINTS</span>
-    <span class="desc">Steal 10 pts from the opposing team immediately</span>
+    <span class="desc">Steal 3 pts (one task) from the opposing team immediately</span>
   </div>
   <div class="bonus-card-row">
     <span class="name">TIME TAX</span>
@@ -291,10 +295,10 @@ async function loadState() {
       scoreRow.innerHTML = sorted.map((name, idx) => {
         const t = teams[name];
         const color = idx === 0 ? 'var(--accent)' : 'var(--accent2)';
-        const medal = idx === 0 ? '' : idx === 1 ? '' : '';
+        const rank = idx + 1;
         return `<div class="score-item">
           <span class="pts" style="color:${color}">${t.score||0}</span>
-          <span class="name">${medal} ${escHtml(name)}</span>
+          <span class="name">#${rank} ${escHtml(name)}</span>
           <span class="detail">${t.completed ? Object.keys(t.completed).length : 0} done · ${t.skipped ? Object.keys(t.skipped).length : 0} skipped · Mission ${t.current_mission || 'done'}</span>
         </div>`;
       }).join('');
@@ -319,10 +323,10 @@ async function loadState() {
 
         if (t.blocked_until) {
           status = `<span class="badge-blocked">BLOCKED</span> ${t.active_cooldown || 'Cooldown'} until ${new Date(t.blocked_until).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}`;
-          actions = `<button class="btn btn-sm btn-red" onclick="clearBlock('${escJs(name)}')">Clear Block</button>`;
+          actions = `<button class="btn btn-sm btn-ghost" onclick="clearBlock('${escJs(name)}')">Clear Block</button>`;
         } else if (t.active_bonus) {
           status = `<span class="badge-bonus">${t.active_bonus.name || 'BONUS ACTIVE'}</span>`;
-          actions = `<button class="btn btn-sm btn-ghost" onclick="clearBlock('${escJs(name)}')">Clear</button>`;
+          actions = `<button class="btn btn-sm btn-red" onclick="failBonus('${escJs(name)}')">Failed (-2)</button> <button class="btn btn-sm btn-ghost" onclick="clearBlock('${escJs(name)}')">Done / Clear</button>`;
         } else if (t.bonus_offer) {
           status = `<span class="badge-bonus">OFFERED: ${t.bonus_offer.name}</span>`;
           actions = `<button class="btn btn-sm btn-ghost" onclick="cancelOffer('${escJs(name)}')">Cancel</button>`;
@@ -388,7 +392,7 @@ async function loadState() {
           events.push({
             team: name, mission: mid, type: 'completed',
             timestamp: sub.timestamp, photo: sub.photo_url,
-            points: sub.points || BASE_POINTS,
+            points: sub.points || 0,
             timing_bonus: sub.timing_bonus || 0,
             multiplier: sub.multiplier || 1,
           });
@@ -511,6 +515,16 @@ async function cancelOffer(team) {
   const r = await fetch('/api/bonus/cancel', { method:'POST', body:f });
   const d = await r.json();
   if (d.success) { showToast('Offer cancelled for ' + team, 'success'); loadState(); }
+}
+
+async function failBonus(team) {
+  if (!confirm(team + ' did NOT complete their bonus card? This deducts 2 points and clears the card.')) return;
+  const f = new FormData();
+  f.append('team', team);
+  const r = await fetch('/api/bonus/fail', { method:'POST', body:f });
+  const d = await r.json();
+  if (d.success) { showToast(team + ' failed bonus: -' + d.penalty + ' pts (now ' + d.score + ')', 'error'); loadState(); }
+  else { showToast(d.error || 'Could not mark failed', 'error'); }
 }
 
 setInterval(loadState, 4000);

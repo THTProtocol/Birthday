@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% if success %}Unlocked!{% else %}Not This One{% endif %}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: 'Inter', -apple-system, system-ui, sans-serif;
@@ -32,7 +33,7 @@
     box-shadow:0 8px 28px rgba(173,40,105,0.18);
   }
   .icon { font-size:56px; margin-bottom:12px; }
-  h1 { font-size:20px; margin-bottom:8px; }
+  h1 { font-family:'Fredoka','Inter',system-ui,sans-serif; font-size:23px; font-weight:700; margin-bottom:8px; }
   p { color:#a05c7d; font-size:14px; line-height:1.5; }
   a {
     color:#fff; background:linear-gradient(135deg,#ff6cb5,#e6398f);
@@ -54,5 +55,64 @@
   <p>{{ message }}</p>
   <a href="/">Back to Hunt</a>
 </div>
+
+<!-- Tap-to-pop background balloons -->
+<script>
+(function(){
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function popBalloon(el){
+    if (el.dataset.popping) return;
+    el.dataset.popping = '1';
+    var r = el.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var bits = ['🎉','✨','💖','🎊','⭐','🌸'];
+    for (var i=0;i<8;i++){
+      (function(){
+        var p = document.createElement('span');
+        p.textContent = bits[Math.floor(Math.random()*bits.length)];
+        var dur = rnd(0.5,0.95);
+        p.style.cssText = 'position:fixed;left:'+cx+'px;top:'+cy+'px;font-size:'+rnd(12,20)+'px;'
+          + 'z-index:9999;pointer-events:none;transform:translate(-50%,-50%);opacity:1;'
+          + 'transition:transform '+dur+'s cubic-bezier(.22,1,.36,1), opacity '+dur+'s ease-out;';
+        document.body.appendChild(p);
+        var ang = rnd(0, Math.PI*2), dist = rnd(34,86);
+        var dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          p.style.transform = 'translate(-50%,-50%) translate('+dx+'px,'+dy+'px) rotate('+rnd(-180,180)+'deg)';
+          p.style.opacity = '0';
+        });});
+        setTimeout(function(){ if (p.parentNode) p.parentNode.removeChild(p); }, dur*1000+120);
+      })();
+    }
+    el.style.transition = 'transform .14s ease-out, opacity .14s ease-out';
+    el.style.transform = 'scale(1.45)';
+    el.style.opacity = '0';
+    if (navigator.vibrate) { try { navigator.vibrate(25); } catch(e){} }
+    setTimeout(function(){ recycle(el); }, 230);
+  }
+  function recycle(el){
+    el.style.transition = 'none';
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.style.left = rnd(2,94) + '%';
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'floatUp ' + rnd(16,28) + 's linear infinite';
+    el.style.animationDelay = '0s';
+    delete el.dataset.popping;
+  }
+  function init(){
+    var balloons = document.querySelectorAll('.party-sky .balloon');
+    for (var i=0;i<balloons.length;i++){
+      var b = balloons[i];
+      b.style.pointerEvents = 'auto';
+      b.style.cursor = 'pointer';
+      b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); popBalloon(this); });
+    }
+  }
+  if (document.readyState !== 'loading') init();
+  else document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
 </body>
 </html>

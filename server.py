@@ -2,10 +2,26 @@
 """Klaudusia's Birthday Scavenger Hunt  -  Urban Hunters Edition
 QR-to-task image flow with bonus cards, timing, and competitive mechanics."""
 
-import os, json, uuid, time, re, random, io
+import os, json, uuid, time, re, random, io, threading, functools
 from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory
+
+# Cross-thread lock serializing the load -> mutate -> save critical section.
+# The app runs with a single gunicorn worker + threads (see birthday-hunt.service),
+# so one process-wide lock makes every state mutation atomic and eliminates the
+# lost-update race that would otherwise drop scores/scans during the live hunt.
+STATE_LOCK = threading.RLock()
+
+
+def with_state_lock(view):
+    """Serialize a mutating endpoint's whole body under STATE_LOCK so its
+    read-modify-write of state.json cannot interleave with another request."""
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        with STATE_LOCK:
+            return view(*args, **kwargs)
+    return wrapper
 
 # Google Drive upload (optional - requires service account JSON key)
 GDRIVE_FOLDER_ID = os.environ.get('GDRIVE_FOLDER_ID', '1EJQGupy6v2fqWdyVXoMurvSMoy0USEkI')
@@ -63,12 +79,17 @@ STATE_FILE = BASE_DIR / 'state.json'
 # ADMIN_PASSWORD kept for reference but no longer required for control panel actions
 # (removed to allow easy game restart/reset from /admin without password)
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'cakeoclock2026')
-SKIP_PENALTY = int(os.environ.get('SKIP_PENALTY', '0'))   # Rules: zero for skipped
-BASE_POINTS = int(os.environ.get('BASE_POINTS', '10'))
-TIMER_BONUS_FAST = int(os.environ.get('TIMER_BONUS_FAST', '5'))    # <5 min bonus
-TIMER_BONUS_MEDIUM = int(os.environ.get('TIMER_BONUS_MEDIUM', '3'))  # <10 min bonus
-TIMER_THRESHOLD_FAST = int(os.environ.get('TIMER_THRESHOLD_FAST', '300'))  # seconds
-TIMER_THRESHOLD_MEDIUM = int(os.environ.get('TIMER_THRESHOLD_MEDIUM', '600'))
+# ── Birthday Edition scoring ────────────────────────────────────
+# Completed task = +3, missed (skipped) task = -1, all tasks equal value.
+SKIP_PENALTY = int(os.environ.get('SKIP_PENALTY', '1'))   # missed task = -1 point
+BASE_POINTS = int(os.environ.get('BASE_POINTS', '3'))     # completed task = +3 points
+# Speed bonus (per task, on time since the previous proof/skip):
+TIMER_BONUS_FAST = int(os.environ.get('TIMER_BONUS_FAST', '5'))    # under 5 min  -> +5
+TIMER_BONUS_MEDIUM = int(os.environ.get('TIMER_BONUS_MEDIUM', '3'))  # 5-10 min   -> +3
+TIMER_THRESHOLD_FAST = int(os.environ.get('TIMER_THRESHOLD_FAST', '300'))  # seconds (5 min)
+TIMER_THRESHOLD_MEDIUM = int(os.environ.get('TIMER_THRESHOLD_MEDIUM', '600'))  # 10 min
+# Bonus card taken but not completed = -2, applied once per failed bonus.
+FAILED_BONUS_PENALTY = int(os.environ.get('FAILED_BONUS_PENALTY', '2'))
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 
@@ -98,9 +119,9 @@ BONUS_CARDS = {
     "steal_points": {
         "id": "steal_points",
         "name": "STEAL POINTS",
-        "description": "Steal points from the opposing team.",
-        "type": "steal",  # immediate, must specify opponent + amount
-        "steal_amount": 10,
+        "description": "Steal 3 points (one task's worth) from the opposing team.",
+        "type": "steal",  # immediate, takes from the other team
+        "steal_amount": 3,
     },
     "time_tax": {
         "id": "time_tax",
@@ -158,12 +179,27 @@ def load_state():
     if STATE_FILE.exists():
         with open(STATE_FILE) as f:
             st = json.load(f)
+        # Backfill top-level keys so a pre-existing/older state.json never 500s.
+        st.setdefault('teams', {})
+        st.setdefault('started', False)
+        st.setdefault('start_time', None)
         # Migrate old team entries that lack new fields
-        for name, ts in st.get('teams', {}).items():
+        for name, ts in st['teams'].items():
+            had_scans = 'scans' in ts   # detect a pre-scans-feature team BEFORE backfilling
             defaults = _default_team(ts.get('color', 'red'))
             for k, v in defaults.items():
                 if k not in ts:
                     ts[k] = v
+            # ONE-TIME upgrade only: a team created under older code has no 'scans'
+            # map, so its current mission was unlocked without a scan record. Treat
+            # that current mission as already scanned so the upgrade doesn't
+            # soft-lock it. Must NOT run for normal teams (would defeat the scan
+            # gate by re-marking each new current mission as scanned on every load).
+            if not had_scans:
+                cur = ts.get('current_mission')
+                if cur is not None:
+                    ts['scans'].setdefault(str(cur), now_iso())
+                    ts['mission_times'].setdefault(str(cur), now_iso())
         return st
     return {'teams': {}, 'started': False, 'start_time': None}
 
@@ -244,6 +280,7 @@ def api_missions():
 
 
 @app.route('/api/team/create', methods=['POST'])
+@with_state_lock
 def team_create():
     team_name = request.form.get('team', '').strip()
     member_name = request.form.get('member', '').strip()
@@ -255,6 +292,9 @@ def team_create():
     if team_color not in ('red', 'blue'):
         team_color = 'red'
     state = load_state()
+    # A duplicate name would overwrite the existing team (name is the dict key).
+    if team_name in state['teams']:
+        return jsonify({'error': 'A team with that name already exists! Pick another name.'}), 400
     # Check color not already taken
     for tnm, ts in state['teams'].items():
         if ts.get('color') == team_color:
@@ -276,6 +316,7 @@ def team_create():
 
 
 @app.route('/api/team/join', methods=['POST'])
+@with_state_lock
 def team_join():
     team_name = request.form.get('team', '').strip()
     member_name = request.form.get('member', '').strip()
@@ -298,19 +339,24 @@ def team_join():
     return jsonify({'success': True, 'team': team_name, 'color': ts.get('color', 'red'), 'members': ts['members']})
 
 @app.route('/api/unlock', methods=['POST'])
+@with_state_lock
 def api_unlock():
-    """Called when a player scans the QR for their current mission.
-    This starts the timer for that mission (if not already started) and confirms unlock.
-    The timer starts on scan, not on proof upload."""
+    """Called when a player scans the QR for their current mission. Records the
+    scan that unlocks the task. The mission timer itself starts when the previous
+    proof uploads, NOT on scan."""
     team = request.form.get('team', '').strip()
-    mission_id = int(request.form.get('mission_id', '0'))
+    try:
+        mission_id = int(request.form.get('mission_id', '0'))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Bad mission id'}), 400
     qr_color = request.form.get('color', '').strip()
     state = load_state()
     if team not in state['teams']:
         return jsonify({'error': 'Team not found'}), 400
     ts = state['teams'][team]
-    # A QR belonging to the other team must not unlock this team's mission
-    if qr_color and qr_color != ts.get('color', 'red'):
+    # A QR must match the team's color. Reject if the color is missing or wrong -
+    # the two teams share mission ids 1-10, so this is the only cross-team barrier.
+    if qr_color != ts.get('color', 'red'):
         return jsonify({'error': "That QR belongs to the other team! Find your own team's QR."}), 400
     if mission_id == ts.get('current_mission'):
         ts['scans'] = ts.get('scans', {})
@@ -345,10 +391,14 @@ def team_list():
 
 
 @app.route('/api/submit', methods=['POST'])
+@with_state_lock
 def submit():
     state = load_state()
     team = request.form.get('team', '').strip()
-    mission_id = int(request.form.get('mission_id', '0'))
+    try:
+        mission_id = int(request.form.get('mission_id', '0'))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Bad mission id'}), 400
 
     if team not in state['teams']:
         return jsonify({'error': 'Team not found'}), 400
@@ -385,7 +435,7 @@ def submit():
 
     # ── Photo requirement ─────────────────────────────────────
     photo_url = None
-    drive_url = None
+    gdrive_args = None
     if 'photo' in request.files:
         file = request.files['photo']
         if file.filename:
@@ -393,13 +443,11 @@ def submit():
             ext = Path(file.filename).suffix or '.jpg'
             filename = f"{safe_team}_{mission_id}_{int(time.time())}{ext}"
             filepath = UPLOAD_DIR / filename
-            filepath.write_bytes(file.read())
+            filepath.write_bytes(file.read())   # local write is fast, fine under lock
             photo_url = f"/uploads/{filename}"
-            # Also upload to Google Drive (non-blocking, best-effort)
-            try:
-                drive_url = upload_to_gdrive(str(filepath), filename, team, mission_id)
-            except Exception:
-                pass
+            # Defer the slow Google Drive upload to a background thread so it does
+            # not hold STATE_LOCK (best-effort backup; its URL is not stored).
+            gdrive_args = (str(filepath), filename, team, mission_id)
 
     if not photo_url:
         return jsonify({'error': 'Photo proof is required to complete this mission.'}), 400
@@ -454,11 +502,19 @@ def submit():
         next_time = now_iso()
         ts['mission_times'][str(ts['current_mission'])] = next_time
 
-    # Clear blocks on successful completion
+    # Clear blocks/cooldown on successful completion, and spend any single-use
+    # card that was taken but not used by THIS action so it cannot leak to a
+    # later mission (a multiplier, if present, was already consumed above).
     ts['blocked_until'] = None
     ts['active_cooldown'] = None
+    leftover = ts.get('active_bonus')
+    if leftover and leftover.get('type') in ('skip_free', 'cooldown'):
+        ts['active_bonus'] = None
 
     save_state(state)
+    # Best-effort Drive backup, off the lock and off the response path.
+    if gdrive_args:
+        threading.Thread(target=upload_to_gdrive, args=gdrive_args, daemon=True).start()
     return jsonify({
         'correct': True,
         'score': ts['score'],
@@ -473,10 +529,14 @@ def submit():
 
 
 @app.route('/api/skip', methods=['POST'])
+@with_state_lock
 def skip():
     state = load_state()
     team = request.form.get('team', '').strip()
-    mission_id = int(request.form.get('mission_id', '0'))
+    try:
+        mission_id = int(request.form.get('mission_id', '0'))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Bad mission id'}), 400
 
     if team not in state['teams']:
         return jsonify({'error': 'Team not found'}), 400
@@ -520,6 +580,10 @@ def skip():
     else:
         penalty = SKIP_PENALTY
         free_skip = False
+        # Spend any leftover single-use card on this forward action so a taken
+        # DOUBLE STRIKE / cooldown card cannot leak to a later mission.
+        if active and active.get('type') in ('multiplier', 'cooldown'):
+            ts['active_bonus'] = None
 
     ts['skipped'][str(mission_id)] = {
         'timestamp': now_iso(),
@@ -597,6 +661,7 @@ def api_team(team_name):
 # ── Bonus card endpoints ────────────────────────────────────────
 
 @app.route('/api/bonus/offer', methods=['POST'])
+@with_state_lock
 def bonus_offer():
     """Admin offers a bonus card to a team. Team must accept or decline."""
     # Password requirement removed for easy control panel access
@@ -609,6 +674,11 @@ def bonus_offer():
     if card_id not in BONUS_CARDS:
         return jsonify({'error': f'Unknown card. Available: {list(BONUS_CARDS.keys())}'}), 400
 
+    # Don't let a new offer erase an unresolved obligation. Resolve the active
+    # card first (Done / Failed / Clear in the admin panel) before offering another.
+    if state['teams'][team].get('active_bonus'):
+        return jsonify({'error': 'Team already has an active bonus. Resolve it first (Done / Failed -2).'}), 400
+
     state['teams'][team]['bonus_offer'] = {
         'card': card_id,
         'offered_at': now_iso(),
@@ -619,6 +689,7 @@ def bonus_offer():
 
 
 @app.route('/api/bonus/respond', methods=['POST'])
+@with_state_lock
 def bonus_respond():
     """Team accepts or declines a pending bonus card offer."""
     team = request.form.get('team', '').strip()
@@ -650,13 +721,13 @@ def bonus_respond():
             # STEAL POINTS  -  immediate, steal from opponent
             opponent = None
             opponent_color = get_opponent_color(ts.get('color', 'red'))
-            opp_amount = int(request.form.get('steal_amount', card_def.get('steal_amount', 10)))
+            opp_amount = int(request.form.get('steal_amount', card_def.get('steal_amount', 3)))
             for other_name, other_ts in state['teams'].items():
                 if other_name != team and other_ts.get('color') == opponent_color:
                     opponent = other_name
                     break
             if opponent:
-                actual_steal = min(opp_amount, state['teams'][opponent]['score'])
+                actual_steal = min(opp_amount, state['teams'][opponent].get('score', 0))
                 state['teams'][opponent]['score'] -= actual_steal
                 ts['score'] += actual_steal
                 ts['bonus_history'].append({
@@ -670,7 +741,7 @@ def bonus_respond():
                 msg = 'No opponent to steal from.'
         elif card_type == 'block':
             # TIME BREAK  -  set pushup requirement
-            ts['active_bonus'] = card_def
+            ts['active_bonus'] = dict(card_def)   # copy so teams don't share the template dict
             ts['blocked_until'] = None
             ts['active_cooldown'] = f'TIME BREAK: {card_def["pushups_required"]} pushups'
             ts['bonus_history'].append({
@@ -686,7 +757,7 @@ def bonus_respond():
             cooldown_end = cooldown_end + timedelta(seconds=cooldown_sec)
             ts['blocked_until'] = cooldown_end.isoformat()
             ts['active_cooldown'] = 'TIME TAX  -  5 min wait'
-            ts['active_bonus'] = card_def
+            ts['active_bonus'] = dict(card_def)   # copy so teams don't share the template dict
             ts['bonus_history'].append({
                 'card': card_id,
                 'applied_at': now_iso(),
@@ -701,7 +772,7 @@ def bonus_respond():
             })
         else:
             # All other cards: store as active bonus, applied on next action
-            ts['active_bonus'] = card_def
+            ts['active_bonus'] = dict(card_def)   # copy so teams don't share the template dict
 
         save_state(state)
         return jsonify({
@@ -713,6 +784,7 @@ def bonus_respond():
 
 
 @app.route('/api/bonus/cancel', methods=['POST'])
+@with_state_lock
 def bonus_cancel():
     """Admin cancels a pending bonus offer for a team."""
     # Password requirement removed for easy control panel access
@@ -725,7 +797,42 @@ def bonus_cancel():
     return jsonify({'success': True})
 
 
+@app.route('/api/bonus/fail', methods=['POST'])
+@with_state_lock
+def bonus_fail():
+    """A taken bonus card was NOT completed. Applies the failed-bonus penalty
+    (-2) once, then clears the active bonus and any block/cooldown it created so
+    the team can keep playing. Gamemaster-triggered from the admin panel.
+    'Once per failed bonus' is guaranteed: clearing active_bonus means there is
+    nothing left to fail until the team takes another card."""
+    team = request.form.get('team', '').strip()
+    state = load_state()
+    if team not in state['teams']:
+        return jsonify({'error': 'Team not found'}), 400
+    ts = state['teams'][team]
+    active = ts.get('active_bonus')
+    if not active:
+        return jsonify({'error': 'No taken bonus card to mark as failed.'}), 400
+    # TIME TAX (cooldown) is a pure time penalty - there is nothing to "complete",
+    # so it cannot be failed. Clear it without an extra -2 (use Clear instead).
+    if active.get('type') == 'cooldown':
+        return jsonify({'error': 'TIME TAX is a wait, not a task to complete. Use Clear instead.'}), 400
+    penalty = FAILED_BONUS_PENALTY
+    ts['score'] -= penalty
+    ts['bonus_history'].append({
+        'card': active.get('id', 'unknown'),
+        'failed_at': now_iso(),
+        'penalty': penalty,
+    })
+    ts['active_bonus'] = None
+    ts['blocked_until'] = None
+    ts['active_cooldown'] = None
+    save_state(state)
+    return jsonify({'success': True, 'penalty': penalty, 'score': ts['score']})
+
+
 @app.route('/api/verify/pushups', methods=['POST'])
+@with_state_lock
 def verify_pushups():
     """Team self-verifies that pushups are done."""
     team = request.form.get('team', '').strip()
@@ -748,10 +855,11 @@ def verify_pushups():
         'pushups': active.get('pushups_required', 150),
     })
 
-    # Record start time for current mission after unblock
-    mid = str(ts['current_mission'])
-    ts['mission_times'] = ts.get('mission_times', {})
-    ts['mission_times'][mid] = now_iso()
+    # Record start time for current mission after unblock (skip if finished)
+    if ts.get('current_mission') is not None:
+        mid = str(ts['current_mission'])
+        ts['mission_times'] = ts.get('mission_times', {})
+        ts['mission_times'][mid] = now_iso()
 
     save_state(state)
     return jsonify({'success': True, 'msg': 'Pushups verified! You are unblocked.'})
@@ -760,16 +868,21 @@ def verify_pushups():
 # ── Admin ───────────────────────────────────────────────────────
 
 @app.route('/api/admin/reset', methods=['POST'])
+@with_state_lock
 def admin_reset():
     # Password requirement removed - easy restart from control panel
     save_state({'teams': {}, 'started': False, 'start_time': None})
     for f in UPLOAD_DIR.iterdir():
         if f.is_file():
-            f.unlink()
+            try:
+                f.unlink()
+            except OSError:
+                pass
     return jsonify({'success': True})
 
 
 @app.route('/api/admin/start', methods=['POST'])
+@with_state_lock
 def admin_start():
     # Password requirement removed - easy restart from control panel
     state = load_state()
@@ -787,6 +900,7 @@ def admin_start():
 
 
 @app.route('/api/admin/bonus', methods=['POST'])
+@with_state_lock
 def admin_bonus():
     # Password requirement removed - easy control panel access
     team = request.form.get('team', '').strip()
@@ -806,6 +920,7 @@ def admin_state():
 
 
 @app.route('/api/admin/clear-block', methods=['POST'])
+@with_state_lock
 def admin_clear_block():
     """Admin forcibly clears a team's block (TIME TAX / TIME BREAK)."""
     # Password requirement removed - easy control panel access
@@ -845,6 +960,7 @@ def editor_load():
 
 
 @app.route('/api/editor/save', methods=['POST'])
+@with_state_lock
 def editor_save():
     # Password requirement removed for full unrestricted access
     color = request.form.get('color', 'red')
