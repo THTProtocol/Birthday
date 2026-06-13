@@ -223,6 +223,14 @@
   .timer-bar .timing-info span { color:var(--green); font-weight:700; }
   .btn-skip { background:rgba(255,255,255,0.5); border:2px dashed rgba(184,134,11,0.40); color:#8a5a00; margin-top:12px; font-size:15px; font-weight:700; padding:14px 16px; letter-spacing:0.2px; border-radius:var(--radius-lg); }
   .btn-skip:hover { background:var(--gold-bg); border-color:rgba(184,134,11,0.6); }
+  .btn-hint { background:linear-gradient(135deg,#c97bf0,#9333c4); color:#fff; margin-top:12px; font-size:14.5px; font-weight:700; padding:13px 16px; border-radius:var(--radius-lg); box-shadow:0 4px 14px rgba(147,51,196,0.30); }
+  .btn-hint:hover:not(:disabled) { filter:brightness(1.06); transform:translateY(-1px); }
+  .hint-reveal { margin-top:10px; padding:13px 16px; border-radius:var(--radius-lg); text-align:left;
+    background:linear-gradient(135deg,rgba(192,132,252,0.16),rgba(147,51,196,0.06));
+    border:1px solid rgba(147,51,196,0.28); box-shadow:var(--shadow-sm);
+    animation:fadeUp .35s cubic-bezier(.22,1,.36,1) both; }
+  .hint-reveal .hint-label { display:block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; color:var(--purple); margin-bottom:4px; }
+  .hint-reveal .hint-title { font-family:var(--font-display); font-size:19px; font-weight:600; color:var(--text-primary); line-height:1.2; }
   .progress-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(42px,1fr)); gap:7px; }
   .prog-chip { aspect-ratio:1; border-radius:var(--radius-md); border:1px solid var(--border-standard); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; background:rgba(255,255,255,0.5); color:var(--text-faint); transition:transform .15s; }
   .prog-chip.done-pink { background:var(--grad-pink); border-color:transparent; color:#fff; box-shadow:0 2px 8px var(--pink-glow); text-shadow:0 1px 2px rgba(120,10,60,0.35); }
@@ -449,6 +457,13 @@
       </button>
     </div>
 
+    <!-- Hint (Team Pink only): reveals the title of the next task -->
+    <button class="btn btn-hint hidden" id="hint-btn" onclick="showHint()">&#x1F4A1; Hint: reveal the next task</button>
+    <div class="hint-reveal hidden" id="hint-reveal">
+      <span class="hint-label">Next Task</span>
+      <span class="hint-title" id="hint-title"></span>
+    </div>
+
     <button class="btn btn-skip" id="skip-btn" onclick="skipMission()">Skip / Miss Task (-1 pt)</button>
   </div>
 
@@ -568,6 +583,7 @@ var myTeam = '', myMember = '', myColor = 'red', pickedColor = null, lastScore =
 var timerInterval = null, blockInterval = null;
 var persistentNextDirections = null;
 var lastCurrentMission = null;  // track to reset photo UI cleanly ONLY on new current mission (not on every poll)
+var hintShownFor = null;        // mission number the hint reveal is currently showing for (Pink team only)
 
 // ================== HELPERS ==================
 function $(id){ return document.getElementById(id); }
@@ -905,6 +921,9 @@ function leaveTeam() {
   window.currentNextHint = '';
   persistentNextDirections = null;
   lastCurrentMission = null;
+  hintShownFor = null;
+  var hb = document.getElementById('hint-btn'); if (hb) hb.classList.add('hidden');
+  var hr = document.getElementById('hint-reveal'); if (hr) hr.classList.add('hidden');
   var nd = document.getElementById('next-dest');
   if (nd) nd.style.display = 'none';
   goToName();
@@ -1122,10 +1141,21 @@ function loadAll() {
 
         // store next hint for reveal after photo upload (for current task)
         window.currentNextHint = m.next_hint || 'Find the next QR code at the location described after the previous task!';
+
+        // Hint button (Team Pink only): reveals the NEXT task's title.
+        var hintBtn = $('hint-btn');
+        var isPink = (myColor === 'pink' || myColor === 'red');
+        if (hintBtn) { if (isPink) hintBtn.classList.remove('hidden'); else hintBtn.classList.add('hidden'); }
+        if (hintShownFor !== null && hintShownFor !== cur) hintShownFor = null;  // reset reveal when the mission changes
+        if (isPink && hintShownFor === cur) { renderHint(cur); }
+        else { var hr = $('hint-reveal'); if (hr) hr.classList.add('hidden'); }
       } else {
         $('current-mission-card').classList.add('hidden');
         $('finished-card').classList.remove('hidden');
         $('final-score').textContent = newScore+' pts';
+        var hb = $('hint-btn'); if (hb) hb.classList.add('hidden');
+        var hrf = $('hint-reveal'); if (hrf) hrf.classList.add('hidden');
+        hintShownFor = null;
         if (!window._celebratedFinish) {
           window._celebratedFinish = true;
           partyBurst(); setTimeout(partyBurst, 700); setTimeout(partyBurst, 1500);
@@ -1167,6 +1197,30 @@ function loadAll() {
   }).catch(function(e){
     console.error('loadAll state fetch error', e);
   });
+}
+
+// ================== HINT (Team Pink only) ==================
+// Reveals the title of the NEXT task. All mission data is already loaded
+// client-side (MISSIONS), so this needs no server call and never touches QRs.
+function renderHint(curId) {
+  var reveal = $('hint-reveal'), titleEl = $('hint-title');
+  if (!reveal || !titleEl) return;
+  if (curId >= MISSIONS.length) {
+    titleEl.textContent = 'This is the final task!';
+  } else {
+    var nextM = MISSIONS[curId];  // MISSIONS is 0-indexed: index curId is mission curId+1 (the next one)
+    titleEl.textContent = (nextM && nextM.title) ? nextM.title : 'Next task';
+  }
+  reveal.classList.remove('hidden');
+}
+
+function showHint() {
+  if (!(myColor === 'pink' || myColor === 'red')) return;  // Pink team only
+  var match = $('cur-num').textContent.match(/\d+/);
+  if (!match) return;
+  var curId = parseInt(match[0]);
+  hintShownFor = curId;
+  renderHint(curId);
 }
 
 // ================== ACTIONS ==================
